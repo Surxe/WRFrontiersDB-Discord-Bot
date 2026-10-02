@@ -1,0 +1,21 @@
+"""Read-only access to a local WRFrontiersDB-Data clone."""
+
+import json
+from pathlib import Path
+
+
+class DataRepo:
+    def __init__(self, data_dir: Path):
+        self.data_dir = Path(data_dir)
+        self.current_dir = self.data_dir / 'current'
+        self.version_file = self.current_dir / 'version.txt'
+        self.objects_dir = self.current_dir / 'Objects'
+
+    def read_version(self) -> str:
+        return self.version_file.read_text(encoding='utf-8').strip()
+
+    def read_objects(self, object_type_name: str) -> dict[str, dict]:
+        """All objects of one type, id -> object."""
+        objects_file = self.objects_dir / f'{object_type_name}.json'
+        with objects_file.open(encoding='utf-8') as f:
+            return json.load(f)
