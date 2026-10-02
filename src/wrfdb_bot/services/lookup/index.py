@@ -21,8 +21,11 @@ from .lookup_key import to_lookup_key
 from .query_parser import split_type_prefix
 
 FUZZY_MATCH_MIN_SCORE = 85
-"""A fuzzy result at or above this score is used as the answer."""
-SUGGESTION_MIN_SCORE = 60
+"""A fuzzy result at or above this score is used as the answer..."""
+FUZZY_MATCH_MIN_LEAD = 3
+"""...if it also beats the runner-up by this much. Partial matches tie often
+("gun" scores the same against Railgun and Gun Nut); a tie gets suggestions instead."""
+SUGGESTION_MIN_SCORE = 70
 """Below FUZZY_MATCH_MIN_SCORE, results at or above this are offered as suggestions."""
 MAX_SUGGESTIONS = 3
 MAX_DESCRIPTION_LENGTH = 300
@@ -95,7 +98,7 @@ class LookupIndex:
             return LookupResult(query, matches[0], other_matches=tuple(matches[1:]))
 
         scored = self._fuzzy(name, object_type, limit=MAX_SUGGESTIONS + 1)
-        if scored and scored[0][1] >= FUZZY_MATCH_MIN_SCORE:
+        if _is_clear_fuzzy_match(scored):
             best_matches = self._exact_matches(scored[0][0], object_type)
             return LookupResult(query, best_matches[0], is_fuzzy=True, other_matches=tuple(best_matches[1:]))
         suggestions = [
@@ -150,6 +153,12 @@ class LookupIndex:
             if matches and matches[0] is entry:
                 return candidate
         return f'{prefix}:{entry.name}'
+
+
+def _is_clear_fuzzy_match(scored: list[tuple[str, float]]) -> bool:
+    if not scored or scored[0][1] < FUZZY_MATCH_MIN_SCORE:
+        return False
+    return len(scored) == 1 or scored[0][1] - scored[1][1] >= FUZZY_MATCH_MIN_LEAD
 
 
 def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
