@@ -12,16 +12,14 @@ class ObjectType:
     label: str
     """Human name, matching the Site's wording."""
     site_route: str
-    """Site page directory: an object's page is `/<site_route>/<slug or id>/`."""
+    """Site page directory: an object's page is `/<site_route>/<slug>/`."""
     prefixes: tuple[str, ...]
     """Type prefixes users may write (`[[talent:vanguard]]`). Normalized when matched."""
-    routed_by_id: bool = False
-    """The Site page path uses the object's id, not a slug (robots)."""
 
 
 # In priority order: when one name matches several types, the earlier type wins.
 OBJECT_TYPES: tuple[ObjectType, ...] = (
-    ObjectType('VirtualBot', 'Robot', 'robots', ('robot', 'bot'), routed_by_id=True),
+    ObjectType('VirtualBot', 'Robot', 'robots', ('robot', 'bot')),
     ObjectType('Pilot', 'Pilot', 'pilots', ('pilot',)),
     ObjectType('Module', 'Module', 'modules', ('module', 'mod')),
     ObjectType('PilotTalent', 'Pilot Talent', 'pilot_talents', ('talent', 'pilot talent')),

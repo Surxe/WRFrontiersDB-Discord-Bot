@@ -5,7 +5,7 @@ WRFrontiersDB-Data. See `README.md` for usage, options and layout.
 
 ## Terminology - never mix these
 
-- **slug**: ONLY the Site's URL path segment, read from the Site's slug map (`wrf_data/site.py`).
+- **slug**: ONLY the Site's URL path segment, read from Data's `index/slug_map.json` (`wrf_data/site.py`).
   The bot never generates slugs.
 - **lookup key**: a name/query normalized for matching (`services/lookup/lookup_key.py`). It
   can look like a slug but is a different thing; never use it to build URLs.

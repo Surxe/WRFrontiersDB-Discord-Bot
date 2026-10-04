@@ -10,6 +10,7 @@ class DataRepo:
         self.current_dir = self.data_dir / 'current'
         self.version_file = self.current_dir / 'version.txt'
         self.objects_dir = self.current_dir / 'Objects'
+        self.slug_map_file = self.data_dir / 'index' / 'slug_map.json'
 
     def read_version(self) -> str:
         return self.version_file.read_text(encoding='utf-8').strip()
@@ -18,4 +19,9 @@ class DataRepo:
         """All objects of one type, id -> object."""
         objects_file = self.objects_dir / f'{object_type_name}.json'
         with objects_file.open(encoding='utf-8') as f:
+            return json.load(f)
+
+    def read_slug_map(self) -> dict[str, str]:
+        """Object id -> slug of its Site page; only objects with a page are listed."""
+        with self.slug_map_file.open(encoding='utf-8') as f:
             return json.load(f)
