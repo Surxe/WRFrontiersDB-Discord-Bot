@@ -177,7 +177,7 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
                     object_id=object_id,
                     name=name,
                     url=snapshot.site_links.page_url(object_type, object_id),
-                    description=_clean_description(object_description(object_type, obj)),
+                    description=_entry_description(snapshot, object_type, object_id, obj),
                     aliases=_robot_part_aliases(object_type, obj, name, module_groups),
                     priority=priority,
                 )
@@ -200,15 +200,22 @@ def _robot_part_aliases(object_type: ObjectType, obj: dict, name: str, module_gr
     return (f'{name} {part}',)
 
 
+def _entry_description(snapshot: DataSnapshot, object_type: ObjectType, object_id: str, obj: dict) -> str:
+    """The page's English meta description, else the object's own description."""
+    text = snapshot.meta_descriptions.get(object_type.name, object_id) or object_description(object_type, obj)
+    return _clean_description(text)
+
+
 def _clean_description(text: str) -> str:
     """Plain description text for an embed, or "" if it can't be shown as-is.
 
     Descriptions with `{Placeholder}` values are dropped: filling them needs the
-    object's scalars, which the prototype doesn't resolve.
+    object's scalars, which only the Site resolves (in its meta descriptions).
     """
     if not text or '{' in text:
         return ''
-    text = ' '.join(_RICH_TEXT_TAG.sub('', text).split())
+    lines = (' '.join(line.split()) for line in _RICH_TEXT_TAG.sub('', text).splitlines())
+    text = '\n'.join(line for line in lines if line)
     if len(text) > MAX_DESCRIPTION_LENGTH:
         text = text[: MAX_DESCRIPTION_LENGTH - 3].rstrip() + '...'
     return text

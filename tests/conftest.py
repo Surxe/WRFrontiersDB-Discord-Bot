@@ -6,7 +6,9 @@ from pathlib import Path
 import pytest
 
 from wrfdb_bot.services.lookup.index import LookupIndex
+from wrfdb_bot.wrf_data import meta_descriptions
 from wrfdb_bot.wrf_data.data_repo import DataRepo
+from wrfdb_bot.wrf_data.meta_descriptions import MetaDescriptions
 from wrfdb_bot.wrf_data.object_types import OBJECT_TYPES
 from wrfdb_bot.wrf_data.store import DataStore
 
@@ -109,6 +111,12 @@ def write_slug_map(data_dir: Path, slug_map: dict | None = None) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(SLUG_MAP if slug_map is None else slug_map))
     return path
+
+
+@pytest.fixture(autouse=True)
+def no_site_fetch(monkeypatch):
+    """Tests never reach the network: the Site serves no meta descriptions unless a test says so."""
+    monkeypatch.setattr(meta_descriptions, 'fetch', lambda site_url, run_id: MetaDescriptions())
 
 
 @pytest.fixture

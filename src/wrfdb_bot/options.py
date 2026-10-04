@@ -14,6 +14,7 @@ DEFAULT_LOG_LEVEL = 'INFO'
 class DataOptions:
     data_dir: Path
     site_url: str
+    site_deploy_state: Path | None
     data_refresh_minutes: float
 
 
@@ -29,9 +30,11 @@ class Options:
 def load_data_options() -> DataOptions:
     data_dir = _required('DATA_DIR')
     site_url = _optional('SITE_URL', DEFAULT_SITE_URL).rstrip('/')
+    site_deploy_state = os.environ.get('SITE_DEPLOY_STATE', '').strip()
     return DataOptions(
         data_dir=Path(data_dir),
         site_url=site_url,
+        site_deploy_state=Path(site_deploy_state) if site_deploy_state else None,
         data_refresh_minutes=float(_optional('DATA_REFRESH_MINUTES', str(DEFAULT_DATA_REFRESH_MINUTES))),
     )
 
