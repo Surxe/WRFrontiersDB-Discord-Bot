@@ -11,6 +11,8 @@ from .meta_descriptions import MetaDescriptions, MetaDescriptionsError
 from .object_types import OBJECT_TYPES
 from .site import SiteLinks, SlugMap
 
+Nicknames = dict[str, list[str]]
+
 
 @dataclass(frozen=True)
 class DataSnapshot:
@@ -21,6 +23,8 @@ class DataSnapshot:
     """Object type name -> id -> object."""
     site_links: SiteLinks
     meta_descriptions: MetaDescriptions
+    nicknames: Nicknames
+    """Object id -> nicknames, from Data's `index/nicknames.json`."""
 
 
 class DataStore:
@@ -40,50 +44,65 @@ class DataStore:
         return self._snapshot
 
     def load(self) -> DataSnapshot:
-        """Load everything. Fails if the data repo can't be read; a missing slug map or
-        unreachable Site only warns."""
+        """Load everything. Fails if the data repo can't be read; a missing slug map,
+        nicknames file or unreachable Site only warns."""
         slug_map = self._fetch_slug_map(fallback={})
+        nicknames = self._fetch_nicknames(fallback={})
         meta = self._refresh_meta(MetaDescriptions(), startup=True)
-        self._snapshot = self._build_snapshot(self.data_repo.read_version(), slug_map, meta)
+        self._snapshot = self._build_snapshot(self.data_repo.read_version(), slug_map, meta, nicknames)
         logger.info(
             f'Loaded data version {self._snapshot.version} '
             f'({sum(len(o) for o in self._snapshot.objects.values())} objects, {len(slug_map)} slugs, '
+            f'{len(nicknames)} nicknamed, '
             f'meta descriptions from Site build {meta.build_id})'
         )
         return self._snapshot
 
     def refresh_if_changed(self) -> bool:
-        """Reload if the data version, the slug map or the deployed Site changed. Returns whether it did."""
+        """Reload if the data version, index/ or the deployed Site changed. Returns whether it did."""
         current = self.snapshot
         version = self.data_repo.read_version()
         slug_map = self._fetch_slug_map(fallback=current.site_links.slug_map)
+        nicknames = self._fetch_nicknames(fallback=current.nicknames)
         meta = self._refresh_meta(current.meta_descriptions)
         if (
             version == current.version
             and slug_map == current.site_links.slug_map
+            and nicknames == current.nicknames
             and meta is current.meta_descriptions
         ):
             return False
         if version == current.version:
-            # The slug map / Site changed after current/ was pushed; keep the parsed objects.
-            self._snapshot = DataSnapshot(version, current.objects, SiteLinks(self.site_url, slug_map), meta)
+            # index/ / the Site changed after current/ was pushed; keep the parsed objects.
+            self._snapshot = DataSnapshot(
+                version, current.objects, SiteLinks(self.site_url, slug_map), meta, nicknames
+            )
         else:
-            self._snapshot = self._build_snapshot(version, slug_map, meta)
+            self._snapshot = self._build_snapshot(version, slug_map, meta, nicknames)
         logger.info(
             f'Refreshed data: version {current.version} -> {version}, {len(slug_map)} slugs, '
             f'meta descriptions from Site build {meta.build_id}'
         )
         return True
 
-    def _build_snapshot(self, version: str, slug_map: SlugMap, meta: MetaDescriptions) -> DataSnapshot:
+    def _build_snapshot(
+        self, version: str, slug_map: SlugMap, meta: MetaDescriptions, nicknames: Nicknames
+    ) -> DataSnapshot:
         objects = {t.name: self.data_repo.read_objects(t.name) for t in OBJECT_TYPES}
-        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta)
+        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta, nicknames)
 
     def _fetch_slug_map(self, fallback: SlugMap) -> SlugMap:
         try:
             return self.data_repo.read_slug_map()
         except (OSError, ValueError) as e:
             logger.warning(f'Could not read the slug map {self.data_repo.slug_map_file}: {e}; links may be missing')
+            return fallback
+
+    def _fetch_nicknames(self, fallback: Nicknames) -> Nicknames:
+        try:
+            return self.data_repo.read_nicknames()
+        except (OSError, ValueError) as e:
+            logger.warning(f'Could not read the nicknames {self.data_repo.nicknames_file}: {e}; lookups use full names')
             return fallback
 
     def _refresh_meta(self, current: MetaDescriptions, startup: bool = False) -> MetaDescriptions:
