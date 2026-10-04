@@ -1,4 +1,4 @@
-"""A tiny WRFrontiersDB-Data clone and Site slug map for tests."""
+"""A tiny WRFrontiersDB-Data clone, slug map included, for tests."""
 
 import json
 from pathlib import Path
@@ -90,7 +90,8 @@ SLUG_MAP = {
     'light-weapon': 'light-weapon',
     'titan-chassis': 'titan-chassis',
     'titan-shoulder': 'titan-shoulder',
-    # DA_Module_Unlinked.0 deliberately has no slug: Data is ahead of the Site.
+    'alpha': 'alpha',
+    # DA_Module_Unlinked.0 deliberately has no slug: it has no page.
 }
 
 
@@ -103,21 +104,26 @@ def write_data_dir(root: Path, version: str = '2026-01-01', objects: dict = OBJE
     return root
 
 
+def write_slug_map(data_dir: Path, slug_map: dict | None = None) -> Path:
+    path = data_dir / 'index' / 'slug_map.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(SLUG_MAP if slug_map is None else slug_map))
+    return path
+
+
 @pytest.fixture
 def data_dir(tmp_path: Path) -> Path:
     return write_data_dir(tmp_path / 'data')
 
 
 @pytest.fixture
-def slug_map_file(tmp_path: Path) -> Path:
-    path = tmp_path / 'slug_map.json'
-    path.write_text(json.dumps(SLUG_MAP))
-    return path
+def slug_map_file(data_dir: Path) -> Path:
+    return write_slug_map(data_dir)
 
 
 @pytest.fixture
 def store(data_dir: Path, slug_map_file: Path) -> DataStore:
-    store = DataStore(DataRepo(data_dir), SITE_URL, str(slug_map_file))
+    store = DataStore(DataRepo(data_dir), SITE_URL)
     store.load()
     return store
 

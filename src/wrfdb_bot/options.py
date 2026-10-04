@@ -14,7 +14,6 @@ DEFAULT_LOG_LEVEL = 'INFO'
 class DataOptions:
     data_dir: Path
     site_url: str
-    site_slug_map_source: str
     data_refresh_minutes: float
 
 
@@ -33,7 +32,6 @@ def load_data_options() -> DataOptions:
     return DataOptions(
         data_dir=Path(data_dir),
         site_url=site_url,
-        site_slug_map_source=_optional('SITE_SLUG_MAP_SOURCE', f'{site_url}/slug_map.json'),
         data_refresh_minutes=float(_optional('DATA_REFRESH_MINUTES', str(DEFAULT_DATA_REFRESH_MINUTES))),
     )
 

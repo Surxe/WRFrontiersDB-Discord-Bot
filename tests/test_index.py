@@ -30,7 +30,7 @@ class TestResolve:
         assert result.entry.object_id == 'DA_Module_Weapon_Scourge.0'
         assert result.is_fuzzy
 
-    def test_resolve_robot_by_id_route(self, index):
+    def test_resolve_robot_links_by_slug_map(self, index):
         result = index.resolve('Alpha')
         assert result.entry.object_type.name == 'VirtualBot'
         assert result.entry.url == f'{SITE_URL}/robots/alpha/'

@@ -19,7 +19,7 @@ class TestDataStore:
         assert store.snapshot.version == '2026-02-02'
         assert 'DA_Faction_New.0' in store.snapshot.objects['Faction']
 
-    def test_refresh_on_new_site_slug_only(self, store, slug_map_file):
+    def test_refresh_on_new_slug_only(self, store, slug_map_file):
         objects = store.snapshot.objects
         slug_map = json.loads(slug_map_file.read_text())
         slug_map['DA_Module_Unlinked.0'] = 'module-unlinked'
@@ -34,7 +34,7 @@ class TestDataStore:
         assert store.refresh_if_changed() is False
         assert store.snapshot.site_links.slug_map == slug_map
 
-    def test_load_without_slug_map_still_works(self, data_dir, tmp_path):
-        store = DataStore(DataRepo(data_dir), SITE_URL, str(tmp_path / 'missing.json'))
+    def test_load_without_slug_map_still_works(self, data_dir):
+        store = DataStore(DataRepo(data_dir), SITE_URL)
         snapshot = store.load()
         assert snapshot.site_links.slug_map == {}

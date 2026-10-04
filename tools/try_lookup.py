@@ -1,7 +1,7 @@
 """Resolve lookup queries against real data without Discord.
 
 Usage: .venv/bin/python tools/try_lookup.py "Kate Sinclair" "talent:vanguard" ...
-Reads DATA_DIR / SITE_URL / SITE_SLUG_MAP_SOURCE from the environment or .env.
+Reads DATA_DIR / SITE_URL from the environment or .env.
 """
 
 import sys
@@ -17,7 +17,7 @@ from wrfdb_bot.wrf_data.store import DataStore
 def main(queries: list[str]) -> None:
     load_dotenv()
     data_options = load_data_options()
-    store = DataStore(DataRepo(data_options.data_dir), data_options.site_url, data_options.site_slug_map_source)
+    store = DataStore(DataRepo(data_options.data_dir), data_options.site_url)
     index = LookupIndex.from_snapshot(store.load())
     for query in queries:
         result = index.resolve(query)

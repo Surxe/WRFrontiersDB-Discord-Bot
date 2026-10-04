@@ -41,7 +41,8 @@ These words have exactly one meaning in this repo:
 
 - **id**: an object's id in WRFrontiersDB-Data (`DA_Pilot_Rare_KateSinclair.0`).
 - **slug**: only the Site's URL path segment for an object page (`kate-sinclair` in
-  `/pilots/kate-sinclair/`), read from the Site's slug map. The bot never generates slugs.
+  `/pilots/kate-sinclair/`), read from Data's slug map (`index/slug_map.json`). The bot
+  never generates slugs.
 - **lookup key**: a name or query normalized for matching (`kate-sinclair`). It can look
   like a slug but is unrelated, and is never used in URLs.
 - **type prefix**: the `type:` part of a query.
@@ -63,9 +64,10 @@ These words have exactly one meaning in this repo:
    ```
 4. Run: `.venv/bin/python -m wrfdb_bot`
 
-`DATA_DIR` is a local clone of WRFrontiersDB-Data. The bot checks it, and the Site's slug
-map, every `DATA_REFRESH_MINUTES` and reloads whatever changed. Objects that are in Data
-but don't have a Site page yet show up without a link.
+`DATA_DIR` is a local clone of WRFrontiersDB-Data. The bot checks it, including its slug
+map (`index/slug_map.json`), every `DATA_REFRESH_MINUTES` and reloads whatever changed.
+Objects without a slug have no Site page and show up without a link. The pipeline pushes
+the slug map before it redeploys the Site, and its run report flags a deploy that fails.
 
 ## Development
 
@@ -80,7 +82,7 @@ src/wrfdb_bot/
   wrf_data/          shared WRF data access, used by every service
     data_repo.py     reads a WRFrontiersDB-Data clone
     object_types.py  the indexed types: Site routes, prefixes, names
-    site.py          Site slug map -> page URLs
+    site.py          slug map -> page URLs
     store.py         DataStore / DataSnapshot, refresh on change
   services/
     lookup/          [[name]] + /wrf
