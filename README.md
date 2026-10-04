@@ -69,6 +69,11 @@ map (`index/slug_map.json`), every `DATA_REFRESH_MINUTES` and reloads whatever c
 Objects without a slug have no Site page and show up without a link. The pipeline pushes
 the slug map before it redeploys the Site, and its run report flags a deploy that fails.
 
+Embed descriptions are the Site's English page meta descriptions, fetched from
+`SITE_URL/meta_descriptions.json` at startup and again whenever `SITE_DEPLOY_STATE` (the
+pipeline's record of its last Site deploy) names a newer deploy. Objects without one
+fall back to their own description.
+
 ## Development
 
 - Tests: `.venv/bin/python -m pytest`
@@ -83,6 +88,7 @@ src/wrfdb_bot/
     data_repo.py     reads a WRFrontiersDB-Data clone
     object_types.py  the indexed types: Site routes, prefixes, names
     site.py          slug map -> page URLs
+    meta_descriptions.py  the Site's page meta descriptions (embed text)
     store.py         DataStore / DataSnapshot, refresh on change
   services/
     lookup/          [[name]] + /wrf
