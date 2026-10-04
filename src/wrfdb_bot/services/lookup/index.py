@@ -44,6 +44,9 @@ class LookupEntry:
     description: str
     aliases: tuple[str, ...] = ()
     """Other names that reach this entry (e.g. `Alpha Chassis` for a robot part)."""
+    nicknames: tuple[str, ...] = ()
+    """Short names from Data's `index/nicknames.json` (`Marcus` for Marcus Shedd). They
+    reach the entry only when no object has that exact name, and are never fuzzy-matched."""
     hint: str = ''
     """Shortest query that resolves to exactly this entry; set by the index."""
     priority: int = field(default=0, repr=False)
@@ -69,11 +72,16 @@ class LookupIndex:
     def __init__(self, entries: list[LookupEntry]):
         self.entries = entries
         self._entries_by_key: dict[str, list[LookupEntry]] = defaultdict(list)
+        self._entries_by_nickname_key: dict[str, list[LookupEntry]] = defaultdict(list)
         for entry in sorted(entries, key=lambda e: (e.priority, e.object_id)):
             for text in (entry.name, *entry.aliases):
                 key = to_lookup_key(text)
                 if key and entry not in self._entries_by_key[key]:
                     self._entries_by_key[key].append(entry)
+            for text in entry.nicknames:
+                key = to_lookup_key(text)
+                if key and entry not in self._entries_by_nickname_key[key]:
+                    self._entries_by_nickname_key[key].append(entry)
         self._types_by_prefix_key = {
             to_lookup_key(prefix): object_type for object_type in OBJECT_TYPES for prefix in object_type.prefixes
         }
@@ -93,7 +101,8 @@ class LookupIndex:
 
     def resolve(self, query: str) -> LookupResult:
         object_type, name = self._split_known_prefix(query)
-        matches = self._exact_matches(to_lookup_key(name), object_type)
+        key = to_lookup_key(name)
+        matches = self._exact_matches(key, object_type) or self._nickname_matches(key, object_type)
         if matches:
             return LookupResult(query, matches[0], other_matches=tuple(matches[1:]))
 
@@ -109,9 +118,11 @@ class LookupIndex:
     def autocomplete(self, text: str, limit: int = 25) -> list[LookupEntry]:
         """Entries for a partly typed query, best first."""
         object_type, name = self._split_known_prefix(text)
-        if not to_lookup_key(name):
+        key = to_lookup_key(name)
+        if not key:
             return []
-        results: list[LookupEntry] = []
+        # A nickname leads only where resolve() would answer with it.
+        results = [] if self._exact_matches(key, object_type) else self._nickname_matches(key, object_type)
         for key, _score in self._fuzzy(name, object_type, limit=limit):
             for entry in self._exact_matches(key, object_type):
                 if entry not in results:
@@ -132,6 +143,10 @@ class LookupIndex:
         if object_type is not None:
             matches = [e for e in matches if e.object_type is object_type]
         return matches
+
+    def _nickname_matches(self, key: str, object_type: ObjectType | None) -> list[LookupEntry]:
+        matches = self._entries_by_nickname_key.get(key, [])
+        return [e for e in matches if object_type is None or e.object_type is object_type]
 
     def _fuzzy(self, name: str, object_type: ObjectType | None, limit: int) -> list[tuple[str, float]]:
         """(lookup key, score) pairs, best first."""
@@ -179,6 +194,7 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
                     url=snapshot.site_links.page_url(object_type, object_id),
                     description=_entry_description(snapshot, object_type, object_id, obj),
                     aliases=_robot_part_aliases(object_type, obj, name, module_groups),
+                    nicknames=tuple(snapshot.nicknames.get(object_id, ())),
                     priority=priority,
                 )
             )

@@ -1,4 +1,4 @@
-"""A tiny WRFrontiersDB-Data clone, slug map included, for tests."""
+"""A tiny WRFrontiersDB-Data clone, slug map and nicknames included, for tests."""
 
 import json
 from pathlib import Path
@@ -31,6 +31,8 @@ OBJECTS = {
         },
         'DA_Pilot_Common3.0': {'first_name': en('Vanguard'), 'bio': en('Tortuga pilot.')},
         'DA_Pilot_Common1.0': {'first_name': en('"Hammer" Petrova')},
+        'DA_Pilot_Common35.0': {'first_name': en('Marcus Davis')},
+        'DA_Pilot_Rare_MarcusShedd.0': {'first_name': en('Marcus'), 'second_name': en('Shedd')},
     },
     'Module': {
         'DA_Module_Weapon_Scourge.0': {
@@ -80,6 +82,8 @@ SLUG_MAP = {
     'DA_Pilot_Rare_KateSinclair.0': 'kate-sinclair',
     'DA_Pilot_Common3.0': 'vanguard',
     'DA_Pilot_Common1.0': 'hammer-petrova',
+    'DA_Pilot_Common35.0': 'marcus-davis',
+    'DA_Pilot_Rare_MarcusShedd.0': 'marcus-shedd',
     'DA_Module_Weapon_Scourge.0': 'light-weapon-scourge',
     'DA_Module_ChassisAlpha.1': 'titan-chassis-alpha',
     'DA_Module_ShoulderLAlpha.0': 'titan-shoulder-left-alpha',
@@ -97,6 +101,13 @@ SLUG_MAP = {
 }
 
 
+NICKNAMES = {
+    'DA_Pilot_Rare_KateSinclair.0': ['Kate'],
+    'DA_Pilot_Common1.0': ['Hammer'],
+    'DA_Pilot_Rare_MarcusShedd.0': ['Marcus'],
+}
+
+
 def write_data_dir(root: Path, version: str = '2026-01-01', objects: dict = OBJECTS) -> Path:
     objects_dir = root / 'current' / 'Objects'
     objects_dir.mkdir(parents=True, exist_ok=True)
@@ -110,6 +121,13 @@ def write_slug_map(data_dir: Path, slug_map: dict | None = None) -> Path:
     path = data_dir / 'index' / 'slug_map.json'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(SLUG_MAP if slug_map is None else slug_map))
+    return path
+
+
+def write_nicknames(data_dir: Path, nicknames: dict | None = None) -> Path:
+    path = data_dir / 'index' / 'nicknames.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(NICKNAMES if nicknames is None else nicknames))
     return path
 
 
@@ -130,7 +148,12 @@ def slug_map_file(data_dir: Path) -> Path:
 
 
 @pytest.fixture
-def store(data_dir: Path, slug_map_file: Path) -> DataStore:
+def nicknames_file(data_dir: Path) -> Path:
+    return write_nicknames(data_dir)
+
+
+@pytest.fixture
+def store(data_dir: Path, slug_map_file: Path, nicknames_file: Path) -> DataStore:
     store = DataStore(DataRepo(data_dir), SITE_URL)
     store.load()
     return store

@@ -1,4 +1,8 @@
+import dataclasses
+
 from conftest import SITE_URL
+
+from wrfdb_bot.services.lookup.index import LookupIndex
 
 
 class TestResolve:
@@ -70,6 +74,35 @@ class TestResolve:
         result = index.resolve('Unlinked')
         assert result.entry.object_id == 'DA_Module_Unlinked.0'
         assert result.entry.url is None
+
+
+class TestNicknames:
+    def test_nickname_resolves_exactly(self, index):
+        result = index.resolve('marcus')
+        assert result.entry.object_id == 'DA_Pilot_Rare_MarcusShedd.0'
+        assert result.entry.url == f'{SITE_URL}/pilots/marcus-shedd/'
+        assert not result.is_fuzzy
+
+    def test_full_name_still_reaches_the_other_pilot(self, index):
+        assert index.resolve('Marcus Davis').entry.object_id == 'DA_Pilot_Common35.0'
+
+    def test_nickname_with_type_prefix(self, index):
+        assert index.resolve('pilot:marcus').entry.object_id == 'DA_Pilot_Rare_MarcusShedd.0'
+        assert index.resolve('talent:marcus').entry is None
+
+    def test_exact_name_beats_nickname(self, store):
+        snapshot = dataclasses.replace(store.snapshot, nicknames={'DA_Pilot_Common1.0': ['Scourge']})
+        index = LookupIndex.from_snapshot(snapshot)
+        assert index.resolve('scourge').entry.object_id == 'DA_Module_Weapon_Scourge.0'
+
+    def test_autocomplete_puts_nickname_first(self, index):
+        assert [e.display_name for e in index.autocomplete('marcus')][0] == 'Marcus Shedd'
+
+    def test_without_nickname_shared_first_name_gives_suggestions(self, store):
+        index = LookupIndex.from_snapshot(dataclasses.replace(store.snapshot, nicknames={}))
+        result = index.resolve('marcus')
+        assert result.entry is None
+        assert {'Marcus Davis', 'Marcus Shedd'} <= {e.name for e in result.suggestions}
 
 
 class TestHints:

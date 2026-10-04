@@ -14,6 +14,10 @@ in a message and it replies with an embed linking to that object's page on the
 - `[[type:name]]` picks a type when names are shared: `[[Vanguard]]` is the pilot,
   `[[talent:Vanguard]]` is the pilot talent. The bot lists other matches with the exact
   thing to type for each.
+- Pilots also answer to their first name: `[[marcus]]` is Marcus Shedd. A first name
+  shared by several pilots goes to the premium (hero) one; Marcus Davis needs his full
+  name. A real object name always wins over a first name (`[[Fury]]` is the robot), and
+  first names are matched exactly, never as typo corrections.
 - Robot parts: `[[Alpha]]` is the robot; `[[Alpha Chassis]]`, `[[Alpha Torso]]`,
   `[[Alpha Shoulder Left]]` are its modules.
 - `/wrf query:` does the same lookup, with autocomplete.
@@ -45,6 +49,8 @@ These words have exactly one meaning in this repo:
   never generates slugs.
 - **lookup key**: a name or query normalized for matching (`kate-sinclair`). It can look
   like a slug but is unrelated, and is never used in URLs.
+- **nickname**: another name an object answers to (today a pilot's first name), read from
+  Data's `index/nicknames.json`. Decided there, never by the bot; never used in URLs.
 - **type prefix**: the `type:` part of a query.
 - **hint**: the shortest query that reaches one particular object; shown for other matches.
 - **service**: one bot feature (a discord.py Cog), switched on with `ENABLED_SERVICES`.
@@ -65,7 +71,8 @@ These words have exactly one meaning in this repo:
 4. Run: `.venv/bin/python -m wrfdb_bot`
 
 `DATA_DIR` is a local clone of WRFrontiersDB-Data. The bot checks it, including its slug
-map (`index/slug_map.json`), every `DATA_REFRESH_MINUTES` and reloads whatever changed.
+map (`index/slug_map.json`) and nicknames (`index/nicknames.json`), every
+`DATA_REFRESH_MINUTES` and reloads whatever changed.
 Objects without a slug have no Site page and show up without a link. The pipeline pushes
 the slug map before it redeploys the Site, and its run report flags a deploy that fails.
 
@@ -94,7 +101,7 @@ src/wrfdb_bot/
     lookup/          [[name]] + /wrf
       lookup_key.py  name/query normalization
       query_parser.py  [[...]] extraction, type prefixes
-      index.py       LookupIndex: exact, priority, aliases, fuzzy, hints
+      index.py       LookupIndex: exact, priority, aliases, nicknames, fuzzy, hints
       embeds.py      Discord replies
       cog.py         the Cog (Discord glue)
 tests/

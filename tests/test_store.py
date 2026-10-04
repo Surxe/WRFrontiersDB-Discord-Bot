@@ -28,6 +28,19 @@ class TestDataStore:
         assert store.snapshot.objects is objects
         assert store.snapshot.site_links.slug_map['DA_Module_Unlinked.0'] == 'module-unlinked'
 
+    def test_refresh_on_new_nicknames_only(self, store, nicknames_file):
+        objects = store.snapshot.objects
+        nicknames_file.write_text(json.dumps({'DA_Pilot_Common35.0': ['Marcus']}))
+        assert store.refresh_if_changed() is True
+        assert store.snapshot.objects is objects
+        assert store.snapshot.nicknames == {'DA_Pilot_Common35.0': ['Marcus']}
+
+    def test_unreadable_nicknames_keep_previous(self, store, nicknames_file):
+        nicknames = store.snapshot.nicknames
+        nicknames_file.write_text('not json')
+        assert store.refresh_if_changed() is False
+        assert store.snapshot.nicknames == nicknames
+
     def test_unreadable_slug_map_keeps_previous(self, store, slug_map_file):
         slug_map = store.snapshot.site_links.slug_map
         slug_map_file.write_text('not json')
@@ -38,3 +51,4 @@ class TestDataStore:
         store = DataStore(DataRepo(data_dir), SITE_URL)
         snapshot = store.load()
         assert snapshot.site_links.slug_map == {}
+        assert snapshot.nicknames == {}
