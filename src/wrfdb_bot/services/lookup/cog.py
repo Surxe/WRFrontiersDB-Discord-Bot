@@ -40,14 +40,18 @@ class LookupCog(commands.Cog):
         queries = extract_queries(message.content)
         if not queries:
             return
-        results = [self.index.resolve(q) for q in queries]
-        await message.reply(mention_author=False, **reply_kwargs(results))
+        index = self.index
+        results = [index.resolve(q) for q in queries]
+        await message.reply(mention_author=False, **reply_kwargs(results, index.version))
 
     @app_commands.command(name='wrf', description='Look up a War Robots: Frontiers robot, pilot, module, ...')
     @app_commands.describe(query='Name to look up, optionally with a type prefix (talent:Vanguard)')
     async def wrf(self, interaction: discord.Interaction, query: str) -> None:
-        result = self.index.resolve(query)
-        await interaction.response.send_message(ephemeral=result.entry is None, **reply_kwargs([result]))
+        index = self.index
+        result = index.resolve(query)
+        await interaction.response.send_message(
+            ephemeral=result.entry is None, **reply_kwargs([result], index.version)
+        )
 
     @wrf.autocomplete('query')
     async def wrf_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
