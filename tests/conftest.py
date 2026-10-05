@@ -38,7 +38,7 @@ OBJECTS = {
         'DA_Module_Weapon_Scourge.0': {
             'production_status': 'Ready',
             'name': en('Scourge'),
-            'description': en('Sustains a <Highlight>focused</> beam.'),
+            'description': en('Sustains a focused beam.'),
             'module_group_ref': 'OBJID_ModuleGroup::light-weapon',
         },
         'DA_Module_Weapon_Secret.0': {'name': en('Secret Gun')},

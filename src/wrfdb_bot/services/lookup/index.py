@@ -1,6 +1,5 @@
 """The lookup index: resolves user queries to WRF objects by English name."""
 
-import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -32,7 +31,6 @@ MAX_DESCRIPTION_LENGTH = 300
 
 _ROBOT_PARTS = ('Chassis', 'Torso', 'Shoulder')
 _SHOULDER_SIDES = {'L': 'Left', 'R': 'Right'}
-_RICH_TEXT_TAG = re.compile(r'<[^>]*>')
 
 
 @dataclass
@@ -227,10 +225,12 @@ def _clean_description(text: str) -> str:
 
     Descriptions with `{Placeholder}` values are dropped: filling them needs the
     object's scalars, which only the Site resolves (in its meta descriptions).
+    Game markup (`<Orange>Gear</>`) is the Site's job too: its meta descriptions
+    come without it.
     """
     if not text or '{' in text:
         return ''
-    lines = (' '.join(line.split()) for line in _RICH_TEXT_TAG.sub('', text).splitlines())
+    lines = (' '.join(line.split()) for line in text.splitlines())
     text = '\n'.join(line for line in lines if line)
     if len(text) > MAX_DESCRIPTION_LENGTH:
         text = text[: MAX_DESCRIPTION_LENGTH - 3].rstrip() + '...'

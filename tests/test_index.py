@@ -125,7 +125,7 @@ class TestHints:
 
 
 class TestDescriptions:
-    def test_description_strips_rich_text(self, index):
+    def test_description_is_the_objects_own_without_meta(self, index):
         assert index.resolve('Scourge').entry.description == 'Sustains a focused beam.'
 
     def test_description_with_placeholders_is_dropped(self, index):
