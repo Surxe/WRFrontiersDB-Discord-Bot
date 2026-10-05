@@ -21,6 +21,10 @@ in a message and it replies with an embed linking to that object's page on the
 - Robot parts: `[[Alpha]]` is the robot; `[[Alpha Chassis]]`, `[[Alpha Torso]]`,
   `[[Alpha Shoulder Left]]` are its modules.
 - `/wrf query:` does the same lookup, with autocomplete.
+- Each embed's footer names the data version it was answered from (`Data 2026-09-29`).
+- `/about` (the `about` service) shows which data the bot, the Site and the Discount
+  Visualizer are on: each frontend's Data commit from its `/deploy.json`, and whether it is
+  the same as, behind or ahead of the bot's `DATA_DIR`.
 
 Indexed types (priority order when names are shared) and their type prefixes:
 
@@ -78,8 +82,10 @@ the slug map before it redeploys the Site, and its run report flags a deploy tha
 
 Embed descriptions are the Site's English page meta descriptions, fetched from
 `SITE_URL/meta_descriptions.json` at startup and again whenever `SITE_DEPLOY_STATE` (the
-pipeline's record of its last Site deploy) names a newer deploy. Objects without one
-fall back to their own description.
+pipeline's record of its last Site deploy) names a newer deploy (`run_id`). Objects without
+one fall back to their own description. That record also says which Data commit the Site
+was built from; the bot logs it and warns while the Site's data version differs from
+`DATA_DIR`'s.
 
 ## Development
 
@@ -96,6 +102,7 @@ src/wrfdb_bot/
     object_types.py  the indexed types: Site routes, prefixes, names
     site.py          slug map -> page URLs
     meta_descriptions.py  the Site's page meta descriptions (embed text)
+    deploys.py       the frontends' deploy records: which Data commit they serve
     store.py         DataStore / DataSnapshot, refresh on change
   services/
     lookup/          [[name]] + /wrf
@@ -104,6 +111,9 @@ src/wrfdb_bot/
       index.py       LookupIndex: exact, priority, aliases, nicknames, fuzzy, hints
       embeds.py      Discord replies
       cog.py         the Cog (Discord glue)
+    about/           /about
+      status.py      the bot's and the frontends' Data commits (Discord-free)
+      cog.py         the Cog
 tests/
 tools/
 ```

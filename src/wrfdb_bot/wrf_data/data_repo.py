@@ -1,6 +1,7 @@
 """Read-only access to a local WRFrontiersDB-Data clone."""
 
 import json
+import subprocess
 from pathlib import Path
 
 
@@ -31,3 +32,26 @@ class DataRepo:
         """Object id -> other names it is known by (a pilot's first name); for matching only."""
         with self.nicknames_file.open(encoding='utf-8') as f:
             return json.load(f)
+
+    def read_commit(self) -> str | None:
+        """The clone's HEAD commit, or None if it isn't a readable git checkout."""
+        return self._git('rev-parse', 'HEAD')
+
+    def count_commits(self, since: str, until: str) -> int | None:
+        """Commits in `until` that aren't in `since`; None if either is unknown to the clone."""
+        out = self._git('rev-list', '--count', f'{since}..{until}')
+        return int(out) if out is not None else None
+
+    def is_ancestor(self, commit: str, of: str) -> bool:
+        try:
+            return subprocess.run(['git', '-C', str(self.data_dir), 'merge-base', '--is-ancestor', commit, of],
+                                  capture_output=True).returncode == 0
+        except OSError:
+            return False
+
+    def _git(self, *args: str) -> str | None:
+        try:
+            result = subprocess.run(['git', '-C', str(self.data_dir), *args], capture_output=True, text=True)
+        except OSError:
+            return None
+        return result.stdout.strip() if result.returncode == 0 else None

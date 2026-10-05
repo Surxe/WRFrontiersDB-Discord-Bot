@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_SITE_URL = 'https://wrf-db.info'
+DEFAULT_VISUALIZER_URL = 'https://surxe.github.io/WRFrontiers-Discount-Visualizer'
 DEFAULT_ENABLED_SERVICES = ('lookup',)
 DEFAULT_DATA_REFRESH_MINUTES = 10.0
 DEFAULT_LOG_LEVEL = 'INFO'
@@ -15,6 +16,7 @@ class DataOptions:
     data_dir: Path
     site_url: str
     site_deploy_state: Path | None
+    visualizer_url: str
     data_refresh_minutes: float
 
 
@@ -35,6 +37,7 @@ def load_data_options() -> DataOptions:
         data_dir=Path(data_dir),
         site_url=site_url,
         site_deploy_state=Path(site_deploy_state) if site_deploy_state else None,
+        visualizer_url=_optional('VISUALIZER_URL', DEFAULT_VISUALIZER_URL).rstrip('/'),
         data_refresh_minutes=float(_optional('DATA_REFRESH_MINUTES', str(DEFAULT_DATA_REFRESH_MINUTES))),
     )
 

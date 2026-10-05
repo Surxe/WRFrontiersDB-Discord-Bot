@@ -67,8 +67,10 @@ class LookupResult:
 
 
 class LookupIndex:
-    def __init__(self, entries: list[LookupEntry]):
+    def __init__(self, entries: list[LookupEntry], version: str = ''):
         self.entries = entries
+        self.version = version
+        """The data version the entries were built from."""
         self._entries_by_key: dict[str, list[LookupEntry]] = defaultdict(list)
         self._entries_by_nickname_key: dict[str, list[LookupEntry]] = defaultdict(list)
         for entry in sorted(entries, key=lambda e: (e.priority, e.object_id)):
@@ -95,7 +97,7 @@ class LookupIndex:
 
     @classmethod
     def from_snapshot(cls, snapshot: DataSnapshot) -> 'LookupIndex':
-        return cls(_build_entries(snapshot))
+        return cls(_build_entries(snapshot), snapshot.version)
 
     def resolve(self, query: str) -> LookupResult:
         object_type, name = self._split_known_prefix(query)

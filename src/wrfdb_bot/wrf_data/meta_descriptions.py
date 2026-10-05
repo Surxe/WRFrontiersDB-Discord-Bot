@@ -5,15 +5,14 @@ same text into that JSON when it builds. The bot uses the English one as an embe
 description, so embeds read like the page's link preview.
 
 When to fetch is driven by the pipeline: after each successful Site deploy it writes
-a deploy state file holding the deploying CI run's id. The Site's JSON carries the id
-of the run that built it (`build_id`), so a fetch can tell the new build from a
-copy the CDN still has cached.
+the deploy's record (`deploys.py`) to a state file, including its CI run's id. The
+Site's JSON carries the id of the run that built it (`build_id`), so a fetch can tell
+the new build from a copy the CDN still has cached.
 """
 
 import json
 import urllib.request
 from dataclasses import dataclass, field
-from pathlib import Path
 
 FETCH_TIMEOUT_SECONDS = 30
 
@@ -39,20 +38,6 @@ class MetaDescriptions:
     def is_older_than(self, run_id: str) -> bool:
         """Whether a deploy by `run_id` is newer than these (run ids only grow)."""
         return not (self.build_id and self.build_id.isdigit()) or int(self.build_id) < int(run_id)
-
-
-def read_deployed_run_id(state_file: Path) -> str | None:
-    """The CI run id of the last recorded Site deploy, or None if none is recorded."""
-    try:
-        state = json.loads(state_file.read_text(encoding='utf-8'))
-    except FileNotFoundError:
-        return None
-    except (OSError, ValueError) as e:
-        raise MetaDescriptionsError(f'Site deploy state {state_file} unreadable: {e}') from e
-    run_id = state.get('site_run_id') if isinstance(state, dict) else None
-    if not run_id or not str(run_id).isdigit():
-        raise MetaDescriptionsError(f'Site deploy state {state_file} has no valid site_run_id')
-    return str(run_id)
 
 
 def fetch(site_url: str, run_id: str | None) -> MetaDescriptions:
