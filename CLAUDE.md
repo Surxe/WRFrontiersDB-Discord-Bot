@@ -9,9 +9,12 @@ WRFrontiersDB-Data. See `README.md` for usage, options and layout.
   The bot never generates slugs.
 - **lookup key**: a name/query normalized for matching (`services/lookup/lookup_key.py`). It
   can look like a slug but is a different thing; never use it to build URLs.
-- **nickname**: another name an object answers to (a pilot's first name), read from Data's
-  `index/nicknames.json`. Data decides them (`tools/wrfdb_data/nicknames.py`); the bot never derives
-  nicknames, and they only match after exact names fail.
+- **alias**: a full alternative name (`Wyrm Chassis` for a robot part), read from Data's
+  `index/aliases.json` (`tools/wrfdb_data/robot_parts.py`). Matches like the name itself (exact,
+  fuzzy, hints); the first one is the display name.
+- **nickname**: a short name an object answers to (a pilot's first name, `Wyrm Legs`), read from
+  Data's `index/nicknames.json` (`tools/wrfdb_data/nicknames.py`); only matches after exact names fail.
+- The bot never derives aliases or nicknames: Data decides them, so the Site can share them.
 - **id** (Data object id), **type prefix** (`talent:`), **hint** (shortest unique query),
   **service** (a feature/Cog) - as defined in the README.
 

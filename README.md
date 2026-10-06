@@ -53,8 +53,11 @@ These words have exactly one meaning in this repo:
   never generates slugs.
 - **lookup key**: a name or query normalized for matching (`kate-sinclair`). It can look
   like a slug but is unrelated, and is never used in URLs.
-- **nickname**: another name an object answers to (today a pilot's first name), read from
-  Data's `index/nicknames.json`. Decided there, never by the bot; never used in URLs.
+- **alias**: a full alternative name (`Wyrm Chassis` for a robot part), read from Data's
+  `index/aliases.json`. Matches like the name itself; the first is shown in its place.
+- **nickname**: a short name an object answers to (a pilot's first name, `Wyrm Legs` for a
+  chassis), read from Data's `index/nicknames.json`. Matches only after exact names fail.
+- Aliases and nicknames are decided in Data, never by the bot, and never used in URLs.
 - **type prefix**: the `type:` part of a query.
 - **hint**: the shortest query that reaches one particular object; shown for other matches.
 - **service**: one bot feature (a discord.py Cog), switched on with `ENABLED_SERVICES`.
@@ -75,7 +78,8 @@ These words have exactly one meaning in this repo:
 4. Run: `.venv/bin/python -m wrfdb_bot`
 
 `DATA_DIR` is a local clone of WRFrontiersDB-Data. The bot checks it, including its slug
-map (`index/slug_map.json`) and nicknames (`index/nicknames.json`), every
+map (`index/slug_map.json`), nicknames (`index/nicknames.json`) and aliases
+(`index/aliases.json`), every
 `DATA_REFRESH_MINUTES` and reloads whatever changed.
 Objects without a slug have no Site page and show up without a link. The pipeline pushes
 the slug map before it redeploys the Site, and its run report flags a deploy that fails.

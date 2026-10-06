@@ -13,6 +13,7 @@ class DataRepo:
         self.objects_dir = self.current_dir / 'Objects'
         self.slug_map_file = self.data_dir / 'index' / 'slug_map.json'
         self.nicknames_file = self.data_dir / 'index' / 'nicknames.json'
+        self.aliases_file = self.data_dir / 'index' / 'aliases.json'
 
     def read_version(self) -> str:
         return self.version_file.read_text(encoding='utf-8').strip()
@@ -29,8 +30,13 @@ class DataRepo:
             return json.load(f)
 
     def read_nicknames(self) -> dict[str, list[str]]:
-        """Object id -> other names it is known by (a pilot's first name); for matching only."""
+        """Object id -> short names it is known by (a pilot's first name); for matching only."""
         with self.nicknames_file.open(encoding='utf-8') as f:
+            return json.load(f)
+
+    def read_aliases(self) -> dict[str, list[str]]:
+        """Object id -> full alternative names (`Wyrm Chassis`); for matching and display."""
+        with self.aliases_file.open(encoding='utf-8') as f:
             return json.load(f)
 
     def read_commit(self) -> str | None:
