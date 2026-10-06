@@ -3,7 +3,7 @@ import json
 from conftest import OBJECTS, SITE_URL, write_data_dir
 
 from wrfdb_bot.wrf_data.data_repo import DataRepo
-from wrfdb_bot.wrf_data.store import DataStore
+from wrfdb_bot.wrf_data.store import DataStore, LookupNames
 
 
 class TestDataStore:
@@ -33,20 +33,20 @@ class TestDataStore:
         nicknames_file.write_text(json.dumps({'DA_Pilot_Common35.0': ['Marcus']}))
         assert store.refresh_if_changed() is True
         assert store.snapshot.objects is objects
-        assert store.snapshot.nicknames == {'DA_Pilot_Common35.0': ['Marcus']}
+        assert store.snapshot.names.nicknames == {'DA_Pilot_Common35.0': ['Marcus']}
 
     def test_refresh_on_new_aliases_only(self, store, aliases_file):
         objects = store.snapshot.objects
         aliases_file.write_text(json.dumps({'DA_Module_ChassisAlpha.1': ['Alpha Legs']}))
         assert store.refresh_if_changed() is True
         assert store.snapshot.objects is objects
-        assert store.snapshot.aliases == {'DA_Module_ChassisAlpha.1': ['Alpha Legs']}
+        assert store.snapshot.names.aliases == {'DA_Module_ChassisAlpha.1': ['Alpha Legs']}
 
     def test_unreadable_nicknames_keep_previous(self, store, nicknames_file):
-        nicknames = store.snapshot.nicknames
+        nicknames = store.snapshot.names.nicknames
         nicknames_file.write_text('not json')
         assert store.refresh_if_changed() is False
-        assert store.snapshot.nicknames == nicknames
+        assert store.snapshot.names.nicknames == nicknames
 
     def test_unreadable_slug_map_keeps_previous(self, store, slug_map_file):
         slug_map = store.snapshot.site_links.slug_map
@@ -58,5 +58,4 @@ class TestDataStore:
         store = DataStore(DataRepo(data_dir), SITE_URL)
         snapshot = store.load()
         assert snapshot.site_links.slug_map == {}
-        assert snapshot.nicknames == {}
-        assert snapshot.aliases == {}
+        assert snapshot.names == LookupNames()

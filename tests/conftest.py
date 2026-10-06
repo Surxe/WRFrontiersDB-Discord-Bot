@@ -1,4 +1,4 @@
-"""A tiny WRFrontiersDB-Data clone, slug map, nicknames and aliases included, for tests."""
+"""A tiny WRFrontiersDB-Data clone, with its index/ (slug map and names), for tests."""
 
 import json
 from pathlib import Path
@@ -22,6 +22,7 @@ def en(text: str) -> dict:
 OBJECTS = {
     'VirtualBot': {
         'alpha': {'id': 'alpha', 'name': en('Alpha')},
+        'relic-alpha': {'id': 'relic-alpha', 'name': en('Relic Alpha')},
     },
     'Pilot': {
         'DA_Pilot_Rare_KateSinclair.0': {
@@ -69,6 +70,18 @@ OBJECTS = {
             'module_group_ref': 'OBJID_ModuleGroup::titan-torsos',
             'module_type_ref': 'OBJID_ModuleType::DA_ModuleType_TitanAlphaTorso.0',
             'virtual_bot_ref': 'OBJID_VirtualBot::alpha',
+        },
+        'DA_Module_ShoulderRelicAlpha01.0': {
+            'production_status': 'Ready',
+            'name': en('Relic Alpha Mk. II'),
+            'module_group_ref': 'OBJID_ModuleGroup::titan-shoulder',
+            'virtual_bot_ref': 'OBJID_VirtualBot::relic-alpha',
+        },
+        'DA_Module_ShoulderRelicAlpha02.0': {
+            'production_status': 'Ready',
+            'name': en('Relic Alpha Mk. I'),
+            'module_group_ref': 'OBJID_ModuleGroup::titan-shoulder',
+            'virtual_bot_ref': 'OBJID_VirtualBot::relic-alpha',
         },
         'DA_Module_Unlinked.0': {'production_status': 'Ready', 'name': en('Unlinked')},
         'DA_Module_Weapon_Railgun.0': {'production_status': 'Ready', 'name': en('Railgun')},
@@ -123,7 +136,12 @@ ALIASES = {
     'DA_Module_ShoulderLAlpha.0': ['Alpha Shoulder Left', 'Alpha Left Shoulder'],
     'DA_Module_ShoulderRAlpha.0': ['Alpha Shoulder Right', 'Alpha Right Shoulder'],
     'DA_Module_TorsoAlpha.0': ['Alpha Torso'],
+    'DA_Module_ShoulderRelicAlpha01.0': ['Relic Alpha Shoulder Mk. II', 'Relic Alpha Shoulder'],
+    'DA_Module_ShoulderRelicAlpha02.0': ['Relic Alpha Shoulder Mk. I'],
 }
+
+# `vanguard` is a real name too: an abbreviation must never hide one.
+ABBREVIATIONS = {'r': 'relic', 'alp': 'alpha', '2': 'mk ii', 'mk 2': 'mk ii', 'mk2': 'mk ii', 'vanguard': 'scourge'}
 
 
 def write_data_dir(root: Path, version: str = '2026-01-01', objects: dict = OBJECTS) -> Path:
@@ -156,6 +174,13 @@ def write_aliases(data_dir: Path, aliases: dict | None = None) -> Path:
     return path
 
 
+def write_abbreviations(data_dir: Path, abbreviations: dict | None = None) -> Path:
+    path = data_dir / 'index' / 'abbreviations.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(ABBREVIATIONS if abbreviations is None else abbreviations))
+    return path
+
+
 @pytest.fixture(autouse=True)
 def no_site_fetch(monkeypatch):
     """Tests never reach the network: the Site serves no meta descriptions unless a test says so."""
@@ -183,7 +208,14 @@ def aliases_file(data_dir: Path) -> Path:
 
 
 @pytest.fixture
-def store(data_dir: Path, slug_map_file: Path, nicknames_file: Path, aliases_file: Path) -> DataStore:
+def abbreviations_file(data_dir: Path) -> Path:
+    return write_abbreviations(data_dir)
+
+
+@pytest.fixture
+def store(
+    data_dir: Path, slug_map_file: Path, nicknames_file: Path, aliases_file: Path, abbreviations_file: Path
+) -> DataStore:
     store = DataStore(DataRepo(data_dir), SITE_URL)
     store.load()
     return store

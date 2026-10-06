@@ -21,6 +21,9 @@ in a message and it replies with an embed linking to that object's page on the
 - Robot parts: `[[Alpha]]` is the robot; `[[Alpha Chassis]]`, `[[Alpha Torso]]`,
   `[[Alpha Shoulder Left]]` are its modules, and a chassis is also its robot's legs
   (`[[Alpha Legs]]`). A robot's reply also shows its torso ability at max level.
+  Variants: `[[Relic Bulgasari Shoulder Mk. II]]`; without the mark it's the highest one.
+- Shorthands expand when a query matches nothing as typed: `[[r bulg shoulder mk1]]` is
+  Relic Bulgasari Shoulder Mk. I. The list is Data's `index/abbreviations.json`.
 - `/wrf query:` does the same lookup, with autocomplete.
 - Each embed's footer names the data version it was answered from (`Data 2026-09-29`).
 - `/about` (the `about` service) shows which data the bot, the Site and the Discount
@@ -56,9 +59,12 @@ These words have exactly one meaning in this repo:
   like a slug but is unrelated, and is never used in URLs.
 - **alias**: a full alternative name (`Wyrm Chassis` for a robot part), read from Data's
   `index/aliases.json`. Matches like the name itself; the first is shown in its place.
+- **abbreviation**: a short word for a word of names (`r` -> `relic`, `bulg` -> `bulgasari`),
+  read from Data's `index/abbreviations.json`. Expands a query that matched nothing as typed.
 - **nickname**: a short name an object answers to (a pilot's first name, `Wyrm Legs` for a
   chassis), read from Data's `index/nicknames.json`. Matches only after exact names fail.
-- Aliases and nicknames are decided in Data, never by the bot, and never used in URLs.
+- Aliases, nicknames and abbreviations are decided in Data, never by the bot, and never used
+  in URLs.
 - **type prefix**: the `type:` part of a query.
 - **hint**: the shortest query that reaches one particular object; shown for other matches.
 - **service**: one bot feature (a discord.py Cog), switched on with `ENABLED_SERVICES`.
@@ -79,8 +85,8 @@ These words have exactly one meaning in this repo:
 4. Run: `.venv/bin/python -m wrfdb_bot`
 
 `DATA_DIR` is a local clone of WRFrontiersDB-Data. The bot checks it, including its slug
-map (`index/slug_map.json`), nicknames (`index/nicknames.json`) and aliases
-(`index/aliases.json`), every
+map (`index/slug_map.json`), nicknames, aliases and abbreviations (`index/nicknames.json`,
+`aliases.json`, `abbreviations.json`), every
 `DATA_REFRESH_MINUTES` and reloads whatever changed.
 Objects without a slug have no Site page and show up without a link. The pipeline pushes
 the slug map before it redeploys the Site, and its run report flags a deploy that fails.

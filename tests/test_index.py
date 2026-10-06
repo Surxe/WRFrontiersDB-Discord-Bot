@@ -92,7 +92,8 @@ class TestNicknames:
         assert index.resolve('talent:marcus').entry is None
 
     def test_exact_name_beats_nickname(self, store):
-        snapshot = dataclasses.replace(store.snapshot, nicknames={'DA_Pilot_Common1.0': ['Scourge']})
+        names = dataclasses.replace(store.snapshot.names, nicknames={'DA_Pilot_Common1.0': ['Scourge']})
+        snapshot = dataclasses.replace(store.snapshot, names=names)
         index = LookupIndex.from_snapshot(snapshot)
         assert index.resolve('scourge').entry.object_id == 'DA_Module_Weapon_Scourge.0'
 
@@ -106,10 +107,45 @@ class TestNicknames:
         assert [e.display_name for e in index.autocomplete('marcus')][0] == 'Marcus Shedd'
 
     def test_without_nickname_shared_first_name_gives_suggestions(self, store):
-        index = LookupIndex.from_snapshot(dataclasses.replace(store.snapshot, nicknames={}))
+        names = dataclasses.replace(store.snapshot.names, nicknames={})
+        index = LookupIndex.from_snapshot(dataclasses.replace(store.snapshot, names=names))
         result = index.resolve('marcus')
         assert result.entry is None
         assert {'Marcus Davis', 'Marcus Shedd'} <= {e.name for e in result.suggestions}
+
+
+class TestAbbreviations:
+    def test_expands_words(self, index):
+        result = index.resolve('r alpha')
+        assert result.entry.object_id == 'relic-alpha'
+        assert not result.is_fuzzy
+
+    def test_plain_part_name_is_the_top_mark(self, index):
+        result = index.resolve('r alp shoulder')
+        assert result.entry.object_id == 'DA_Module_ShoulderRelicAlpha01.0'
+        assert result.entry.display_name == 'Relic Alpha Shoulder Mk. II'
+
+    def test_multi_word_expansion(self, index):
+        assert index.resolve('r alp shoulder mk2').entry.object_id == 'DA_Module_ShoulderRelicAlpha01.0'
+
+    def test_longest_shorthand_first(self, index):
+        for query in ('r alp 2', 'r alp mk 2', 'r alp mk. 2', 'r alp shoulder 2'):
+            assert index.resolve(query).entry.object_id == 'DA_Module_ShoulderRelicAlpha01.0', query
+
+    def test_suggestions_are_distinct(self, index):
+        result = index.resolve('relic alp shoulder mk')
+        assert len(result.suggestions) == len(set(map(id, result.suggestions)))
+
+    def test_real_name_is_never_expanded(self, index):
+        assert index.resolve('vanguard').entry.object_id == 'DA_Pilot_Common3.0'
+
+    def test_fuzzy_after_expansion(self, index):
+        result = index.resolve('r alpah')
+        assert result.entry.object_id == 'relic-alpha'
+        assert result.is_fuzzy
+
+    def test_autocomplete_expands(self, index):
+        assert index.autocomplete('r alp')[0].object_id == 'relic-alpha'
 
 
 class TestHints:
