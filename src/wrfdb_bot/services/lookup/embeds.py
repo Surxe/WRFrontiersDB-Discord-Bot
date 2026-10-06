@@ -35,6 +35,8 @@ def result_embed(result: LookupResult, data_version: str = '') -> discord.Embed:
         if hidden > 0:
             lines.append(f'...and {hidden} more')
         embed.add_field(name='Also matches', value='\n'.join(lines), inline=False)
+    if entry.torso and entry.torso.description:
+        embed.add_field(name=entry.torso.display_name, value=entry.torso.description, inline=False)
 
     footer = entry.object_type.label
     if result.is_fuzzy:

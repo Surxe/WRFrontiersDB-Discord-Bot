@@ -42,6 +42,7 @@ class TestResolve:
             'Alpha Chassis',
             'Alpha Shoulder Left',
             'Alpha Shoulder Right',
+            'Alpha Torso',
         }
 
     def test_resolve_robot_part_aliases(self, index):

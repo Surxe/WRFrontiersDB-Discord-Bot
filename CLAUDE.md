@@ -15,6 +15,10 @@ WRFrontiersDB-Data. See `README.md` for usage, options and layout.
 - **nickname**: a short name an object answers to (a pilot's first name, `Wyrm Legs`), read from
   Data's `index/nicknames.json` (`tools/wrfdb_data/nicknames.py`); only matches after exact names fail.
 - The bot never derives aliases or nicknames: Data decides them, so the Site can share them.
+- **description**: an object's embed text, `LookupEntry.description` (`index.py`). It is the Site's
+  meta description: stats already filled in at max level, markup stripped (else the object's own
+  text if it has no `{placeholders}`). To show an object's text anywhere, reuse its entry's
+  `description`; never fill placeholders or pick levels in the bot.
 - **id** (Data object id), **type prefix** (`talent:`), **hint** (shortest unique query),
   **service** (a feature/Cog) - as defined in the README.
 

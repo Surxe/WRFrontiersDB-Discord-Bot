@@ -62,6 +62,14 @@ OBJECTS = {
             'virtual_bot_ref': 'OBJID_VirtualBot::alpha',
             'shoulder_side': 'R',
         },
+        'DA_Module_TorsoAlpha.0': {
+            'production_status': 'Ready',
+            'name': en('Alpha'),
+            'description': en('Pulls a target in.'),
+            'module_group_ref': 'OBJID_ModuleGroup::titan-torsos',
+            'module_type_ref': 'OBJID_ModuleType::DA_ModuleType_TitanAlphaTorso.0',
+            'virtual_bot_ref': 'OBJID_VirtualBot::alpha',
+        },
         'DA_Module_Unlinked.0': {'production_status': 'Ready', 'name': en('Unlinked')},
         'DA_Module_Weapon_Railgun.0': {'production_status': 'Ready', 'name': en('Railgun')},
         'DA_Module_Weapon_GunNut.0': {'production_status': 'Ready', 'name': en('Gun Nut')},
@@ -75,6 +83,7 @@ OBJECTS = {
         'light-weapon': {'name': en('Light Weapon')},
         'titan-chassis': {'name': en('Titan Chassis')},
         'titan-shoulder': {'name': en('Titan Shoulder')},
+        'titan-torsos': {'name': en('Titan Torso')},
     },
 }
 
@@ -88,6 +97,7 @@ SLUG_MAP = {
     'DA_Module_ChassisAlpha.1': 'titan-chassis-alpha',
     'DA_Module_ShoulderLAlpha.0': 'titan-shoulder-left-alpha',
     'DA_Module_ShoulderRAlpha.0': 'titan-shoulder-right-alpha',
+    'DA_Module_TorsoAlpha.0': 'titan-torsos-alpha',
     'DA_Module_Weapon_Railgun.0': 'light-weapon-railgun',
     'DA_Module_Weapon_GunNut.0': 'light-weapon-gun-nut',
     'DA_Talent_Leader1.0': 'vanguard',
@@ -112,6 +122,7 @@ ALIASES = {
     'DA_Module_ChassisAlpha.1': ['Alpha Chassis'],
     'DA_Module_ShoulderLAlpha.0': ['Alpha Shoulder Left', 'Alpha Left Shoulder'],
     'DA_Module_ShoulderRAlpha.0': ['Alpha Shoulder Right', 'Alpha Right Shoulder'],
+    'DA_Module_TorsoAlpha.0': ['Alpha Torso'],
 }
 
 
