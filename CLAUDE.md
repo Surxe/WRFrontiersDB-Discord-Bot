@@ -14,7 +14,11 @@ WRFrontiersDB-Data. See `README.md` for usage, options and layout.
   fuzzy, hints); the first one is the display name.
 - **nickname**: a short name an object answers to (a pilot's first name, `Wyrm Legs`), read from
   Data's `index/nicknames.json` (`tools/wrfdb_data/nicknames.py`); only matches after exact names fail.
-- The bot never derives aliases or nicknames: Data decides them, so the Site can share them.
+- **abbreviation**: a short word for a word of names (`r` -> `relic`, `mk2` -> `mk ii`), read from
+  Data's `index/abbreviations.json` (`tools/wrfdb_data/abbreviations.py`). A query's words are
+  expanded only when it matches nothing as typed; fuzzy matching then uses the expanded query.
+- Aliases, nicknames and abbreviations are `DataSnapshot.names`. The bot never derives any of
+  them: Data decides them, so the Site can share them.
 - **description**: an object's embed text, `LookupEntry.description` (`index.py`). It is the Site's
   meta description: stats already filled in at max level, markup stripped (else the object's own
   text if it has no `{placeholders}`). To show an object's text anywhere, reuse its entry's

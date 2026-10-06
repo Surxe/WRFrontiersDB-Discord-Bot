@@ -1,8 +1,9 @@
 """The current WRF data, shared by all services, refreshed when it changes."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TypeVar
 
 from loguru import logger
 
@@ -18,6 +19,18 @@ Names = dict[str, list[str]]
 
 
 @dataclass(frozen=True)
+class LookupNames:
+    """The other names objects answer to, from Data's `index/` (decided there, never by the bot)."""
+
+    nicknames: Names = field(default_factory=dict)
+    """Object id -> nicknames, from `index/nicknames.json`."""
+    aliases: Names = field(default_factory=dict)
+    """Object id -> aliases, from `index/aliases.json`."""
+    abbreviations: dict[str, str] = field(default_factory=dict)
+    """Short word -> full word(s), from `index/abbreviations.json`."""
+
+
+@dataclass(frozen=True)
 class DataSnapshot:
     """One consistent view of the data. Replaced as a whole on refresh, never mutated."""
 
@@ -26,10 +39,7 @@ class DataSnapshot:
     """Object type name -> id -> object."""
     site_links: SiteLinks
     meta_descriptions: MetaDescriptions
-    nicknames: Names
-    """Object id -> nicknames, from Data's `index/nicknames.json`."""
-    aliases: Names
-    """Object id -> aliases, from Data's `index/aliases.json`."""
+    names: LookupNames
     site_deploy: DeployRecord | None = None
     """The recorded Site deploy the meta descriptions came from (its Data commit), if known."""
 
@@ -52,18 +62,16 @@ class DataStore:
 
     def load(self) -> DataSnapshot:
         """Load everything. Fails if the data repo can't be read; a missing slug map,
-        nicknames or aliases file or unreachable Site only warns."""
+        names file or unreachable Site only warns."""
         slug_map = self._fetch_slug_map(fallback={})
-        nicknames = self._fetch_nicknames(fallback={})
-        aliases = self._fetch_aliases(fallback={})
+        names = self._fetch_names(fallback=LookupNames())
         meta, deploy = self._refresh_site(MetaDescriptions(), None, startup=True)
-        self._snapshot = self._build_snapshot(
-            self.data_repo.read_version(), slug_map, meta, deploy, nicknames, aliases
-        )
+        self._snapshot = self._build_snapshot(self.data_repo.read_version(), slug_map, meta, deploy, names)
         logger.info(
             f'Loaded data version {self._snapshot.version} '
             f'({sum(len(o) for o in self._snapshot.objects.values())} objects, {len(slug_map)} slugs, '
-            f'{len(nicknames)} nicknamed, {len(aliases)} aliased, '
+            f'{len(names.nicknames)} nicknamed, {len(names.aliases)} aliased, '
+            f'{len(names.abbreviations)} abbreviations, '
             f'meta descriptions from Site build {meta.build_id}{_site_data(deploy)})'
         )
         self._warn_if_site_differs(self._snapshot)
@@ -74,24 +82,22 @@ class DataStore:
         current = self.snapshot
         version = self.data_repo.read_version()
         slug_map = self._fetch_slug_map(fallback=current.site_links.slug_map)
-        nicknames = self._fetch_nicknames(fallback=current.nicknames)
-        aliases = self._fetch_aliases(fallback=current.aliases)
+        names = self._fetch_names(fallback=current.names)
         meta, deploy = self._refresh_site(current.meta_descriptions, current.site_deploy)
         if (
             version == current.version
             and slug_map == current.site_links.slug_map
-            and nicknames == current.nicknames
-            and aliases == current.aliases
+            and names == current.names
             and meta is current.meta_descriptions
         ):
             return False
         if version == current.version:
             # index/ / the Site changed after current/ was pushed; keep the parsed objects.
             self._snapshot = DataSnapshot(
-                version, current.objects, SiteLinks(self.site_url, slug_map), meta, nicknames, aliases, deploy
+                version, current.objects, SiteLinks(self.site_url, slug_map), meta, names, deploy
             )
         else:
-            self._snapshot = self._build_snapshot(version, slug_map, meta, deploy, nicknames, aliases)
+            self._snapshot = self._build_snapshot(version, slug_map, meta, deploy, names)
         logger.info(
             f'Refreshed data: version {current.version} -> {version}, {len(slug_map)} slugs, '
             f'meta descriptions from Site build {meta.build_id}{_site_data(deploy)}'
@@ -105,11 +111,10 @@ class DataStore:
         slug_map: SlugMap,
         meta: MetaDescriptions,
         deploy: DeployRecord | None,
-        nicknames: Names,
-        aliases: Names,
+        names: LookupNames,
     ) -> DataSnapshot:
         objects = {t.name: self.data_repo.read_objects(t.name) for t in OBJECT_TYPES}
-        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta, nicknames, aliases, deploy)
+        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta, names, deploy)
 
     @staticmethod
     def _warn_if_site_differs(snapshot: DataSnapshot) -> None:
@@ -127,19 +132,14 @@ class DataStore:
             logger.warning(f'Could not read the slug map {self.data_repo.slug_map_file}: {e}; links may be missing')
             return fallback
 
-    def _fetch_nicknames(self, fallback: Names) -> Names:
-        return self._fetch_names(self.data_repo.read_nicknames, self.data_repo.nicknames_file, 'nicknames', fallback)
-
-    def _fetch_aliases(self, fallback: Names) -> Names:
-        return self._fetch_names(self.data_repo.read_aliases, self.data_repo.aliases_file, 'aliases', fallback)
-
-    @staticmethod
-    def _fetch_names(read: Callable[[], Names], path: Path, what: str, fallback: Names) -> Names:
-        try:
-            return read()
-        except (OSError, ValueError) as e:
-            logger.warning(f'Could not read the {what} {path}: {e}; lookups use full names')
-            return fallback
+    def _fetch_names(self, fallback: LookupNames) -> LookupNames:
+        """Each file read on its own: one that can't be read keeps its `fallback` part."""
+        repo = self.data_repo
+        return LookupNames(
+            nicknames=_read_or(repo.read_nicknames, repo.nicknames_file, fallback.nicknames),
+            aliases=_read_or(repo.read_aliases, repo.aliases_file, fallback.aliases),
+            abbreviations=_read_or(repo.read_abbreviations, repo.abbreviations_file, fallback.abbreviations),
+        )
 
     def _refresh_site(
         self, current: MetaDescriptions, current_deploy: DeployRecord | None, startup: bool = False
@@ -169,6 +169,17 @@ class DataStore:
             )
             return (fetched, None) if not current.descriptions else (current, current_deploy)
         return fetched, deploy
+
+
+T = TypeVar('T')
+
+
+def _read_or(read: Callable[[], T], path: Path, fallback: T) -> T:
+    try:
+        return read()
+    except (OSError, ValueError) as e:
+        logger.warning(f'Could not read {path}: {e}; lookups use full names')
+        return fallback
 
 
 def _site_data(deploy: DeployRecord | None) -> str:

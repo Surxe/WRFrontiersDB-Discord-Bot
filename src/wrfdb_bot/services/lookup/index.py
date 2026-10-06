@@ -67,10 +67,13 @@ class LookupResult:
 
 
 class LookupIndex:
-    def __init__(self, entries: list[LookupEntry], version: str = ''):
+    def __init__(self, entries: list[LookupEntry], version: str = '', abbreviations: dict[str, str] | None = None):
         self.entries = entries
         self.version = version
         """The data version the entries were built from."""
+        self._abbreviations = {to_lookup_key(k): to_lookup_key(v) for k, v in (abbreviations or {}).items()}
+        """Shorthand -> full words as lookup keys (`mk-2` -> `mk-ii`), from Data's `index/abbreviations.json`."""
+        self._longest_abbreviation = max((len(k.split('-')) for k in self._abbreviations), default=0)
         self._entries_by_key: dict[str, list[LookupEntry]] = defaultdict(list)
         self._entries_by_nickname_key: dict[str, list[LookupEntry]] = defaultdict(list)
         for entry in sorted(entries, key=lambda e: (e.priority, e.object_id)):
@@ -97,34 +100,36 @@ class LookupIndex:
 
     @classmethod
     def from_snapshot(cls, snapshot: DataSnapshot) -> 'LookupIndex':
-        return cls(_build_entries(snapshot), snapshot.version)
+        return cls(_build_entries(snapshot), snapshot.version, snapshot.names.abbreviations)
 
     def resolve(self, query: str) -> LookupResult:
         object_type, name = self._split_known_prefix(query)
-        key = to_lookup_key(name)
+        key = self._search_key(to_lookup_key(name), object_type)
         matches = self._exact_matches(key, object_type) or self._nickname_matches(key, object_type)
         if matches:
             return LookupResult(query, matches[0], other_matches=tuple(matches[1:]))
 
-        scored = self._fuzzy(name, object_type, limit=MAX_SUGGESTIONS + 1)
+        scored = self._fuzzy(key, object_type, limit=MAX_SUGGESTIONS + 1)
         if _is_clear_fuzzy_match(scored):
             best_matches = self._exact_matches(scored[0][0], object_type)
             return LookupResult(query, best_matches[0], is_fuzzy=True, other_matches=tuple(best_matches[1:]))
-        suggestions = [
-            self._exact_matches(key, object_type)[0] for key, score in scored if score >= SUGGESTION_MIN_SCORE
-        ]
+        suggestions: list[LookupEntry] = []
+        for match_key, score in scored:
+            entry = self._exact_matches(match_key, object_type)[0]
+            if score >= SUGGESTION_MIN_SCORE and entry not in suggestions:
+                suggestions.append(entry)
         return LookupResult(query, None, suggestions=tuple(suggestions[:MAX_SUGGESTIONS]))
 
     def autocomplete(self, text: str, limit: int = 25) -> list[LookupEntry]:
         """Entries for a partly typed query, best first."""
         object_type, name = self._split_known_prefix(text)
-        key = to_lookup_key(name)
+        key = self._search_key(to_lookup_key(name), object_type)
         if not key:
             return []
         # A nickname leads only where resolve() would answer with it.
         results = [] if self._exact_matches(key, object_type) else self._nickname_matches(key, object_type)
-        for key, _score in self._fuzzy(name, object_type, limit=limit):
-            for entry in self._exact_matches(key, object_type):
+        for match_key, _score in self._fuzzy(key, object_type, limit=limit):
+            for entry in self._exact_matches(match_key, object_type):
                 if entry not in results:
                     results.append(entry)
         return results[:limit]
@@ -138,6 +143,25 @@ class LookupIndex:
         # No prefix, or not a type name: the colon is part of the name.
         return None, query.strip()
 
+    def _search_key(self, key: str, object_type: ObjectType | None) -> str:
+        """`key` itself if a name or nickname has it, else with its abbreviations expanded,
+        longest first (`r-bulg-mk-2` -> `relic-bulgasari-mk-ii`, not `...-mk-mk-ii`).
+        Fuzzy matching uses the same key."""
+        if self._exact_matches(key, object_type) or self._nickname_matches(key, object_type):
+            return key
+        words, expanded, i = key.split('-'), [], 0
+        while i < len(words):
+            for n in range(min(self._longest_abbreviation, len(words) - i), 0, -1):
+                full = self._abbreviations.get('-'.join(words[i : i + n]))
+                if full:
+                    expanded.append(full)
+                    i += n
+                    break
+            else:
+                expanded.append(words[i])
+                i += 1
+        return '-'.join(expanded)
+
     def _exact_matches(self, key: str, object_type: ObjectType | None) -> list[LookupEntry]:
         matches = self._entries_by_key.get(key, [])
         if object_type is not None:
@@ -148,10 +172,10 @@ class LookupIndex:
         matches = self._entries_by_nickname_key.get(key, [])
         return [e for e in matches if object_type is None or e.object_type is object_type]
 
-    def _fuzzy(self, name: str, object_type: ObjectType | None, limit: int) -> list[tuple[str, float]]:
-        """(lookup key, score) pairs, best first."""
+    def _fuzzy(self, key: str, object_type: ObjectType | None, limit: int) -> list[tuple[str, float]]:
+        """(lookup key, score) pairs for a lookup key, best first."""
         choices = self._fuzzy_choices[object_type.name if object_type else None]
-        query = to_lookup_key(name).replace('-', ' ')
+        query = key.replace('-', ' ')
         if not query or not choices:
             return []
         return [
@@ -192,8 +216,8 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
                 name=name,
                 url=snapshot.site_links.page_url(object_type, object_id),
                 description=_entry_description(snapshot, object_type, object_id, obj),
-                aliases=tuple(snapshot.aliases.get(object_id, ())),
-                nicknames=tuple(snapshot.nicknames.get(object_id, ())),
+                aliases=tuple(snapshot.names.aliases.get(object_id, ())),
+                nicknames=tuple(snapshot.names.nicknames.get(object_id, ())),
                 priority=priority,
             )
             entries.append(entry)

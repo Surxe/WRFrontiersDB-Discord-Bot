@@ -14,6 +14,7 @@ class DataRepo:
         self.slug_map_file = self.data_dir / 'index' / 'slug_map.json'
         self.nicknames_file = self.data_dir / 'index' / 'nicknames.json'
         self.aliases_file = self.data_dir / 'index' / 'aliases.json'
+        self.abbreviations_file = self.data_dir / 'index' / 'abbreviations.json'
 
     def read_version(self) -> str:
         return self.version_file.read_text(encoding='utf-8').strip()
@@ -37,6 +38,11 @@ class DataRepo:
     def read_aliases(self) -> dict[str, list[str]]:
         """Object id -> full alternative names (`Wyrm Chassis`); for matching and display."""
         with self.aliases_file.open(encoding='utf-8') as f:
+            return json.load(f)
+
+    def read_abbreviations(self) -> dict[str, str]:
+        """Short word -> full word(s) (`r` -> `relic`, `mk2` -> `mk ii`); for matching only."""
+        with self.abbreviations_file.open(encoding='utf-8') as f:
             return json.load(f)
 
     def read_commit(self) -> str | None:
