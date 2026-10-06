@@ -1,4 +1,4 @@
-"""A tiny WRFrontiersDB-Data clone, slug map and nicknames included, for tests."""
+"""A tiny WRFrontiersDB-Data clone, slug map, nicknames and aliases included, for tests."""
 
 import json
 from pathlib import Path
@@ -105,6 +105,13 @@ NICKNAMES = {
     'DA_Pilot_Rare_KateSinclair.0': ['Kate'],
     'DA_Pilot_Common1.0': ['Hammer'],
     'DA_Pilot_Rare_MarcusShedd.0': ['Marcus'],
+    'DA_Module_ChassisAlpha.1': ['Alpha Legs'],
+}
+
+ALIASES = {
+    'DA_Module_ChassisAlpha.1': ['Alpha Chassis'],
+    'DA_Module_ShoulderLAlpha.0': ['Alpha Shoulder Left', 'Alpha Left Shoulder'],
+    'DA_Module_ShoulderRAlpha.0': ['Alpha Shoulder Right', 'Alpha Right Shoulder'],
 }
 
 
@@ -131,6 +138,13 @@ def write_nicknames(data_dir: Path, nicknames: dict | None = None) -> Path:
     return path
 
 
+def write_aliases(data_dir: Path, aliases: dict | None = None) -> Path:
+    path = data_dir / 'index' / 'aliases.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(ALIASES if aliases is None else aliases))
+    return path
+
+
 @pytest.fixture(autouse=True)
 def no_site_fetch(monkeypatch):
     """Tests never reach the network: the Site serves no meta descriptions unless a test says so."""
@@ -153,7 +167,12 @@ def nicknames_file(data_dir: Path) -> Path:
 
 
 @pytest.fixture
-def store(data_dir: Path, slug_map_file: Path, nicknames_file: Path) -> DataStore:
+def aliases_file(data_dir: Path) -> Path:
+    return write_aliases(data_dir)
+
+
+@pytest.fixture
+def store(data_dir: Path, slug_map_file: Path, nicknames_file: Path, aliases_file: Path) -> DataStore:
     store = DataStore(DataRepo(data_dir), SITE_URL)
     store.load()
     return store

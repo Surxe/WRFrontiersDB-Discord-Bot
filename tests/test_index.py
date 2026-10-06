@@ -95,6 +95,12 @@ class TestNicknames:
         index = LookupIndex.from_snapshot(snapshot)
         assert index.resolve('scourge').entry.object_id == 'DA_Module_Weapon_Scourge.0'
 
+    def test_chassis_answers_to_legs(self, index):
+        result = index.resolve('alpha legs')
+        assert result.entry.object_id == 'DA_Module_ChassisAlpha.1'
+        assert result.entry.display_name == 'Alpha Chassis'
+        assert not result.is_fuzzy
+
     def test_autocomplete_puts_nickname_first(self, index):
         assert [e.display_name for e in index.autocomplete('marcus')][0] == 'Marcus Shedd'
 

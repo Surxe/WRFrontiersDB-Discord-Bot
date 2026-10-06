@@ -1,5 +1,6 @@
 """The current WRF data, shared by all services, refreshed when it changes."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,7 +12,8 @@ from .meta_descriptions import MetaDescriptions, MetaDescriptionsError
 from .object_types import OBJECT_TYPES
 from .site import SiteLinks, SlugMap
 
-Nicknames = dict[str, list[str]]
+Names = dict[str, list[str]]
+"""Object id -> other names, as Data's `index/nicknames.json` and `index/aliases.json` hold them."""
 
 
 @dataclass(frozen=True)
@@ -23,8 +25,10 @@ class DataSnapshot:
     """Object type name -> id -> object."""
     site_links: SiteLinks
     meta_descriptions: MetaDescriptions
-    nicknames: Nicknames
+    nicknames: Names
     """Object id -> nicknames, from Data's `index/nicknames.json`."""
+    aliases: Names
+    """Object id -> aliases, from Data's `index/aliases.json`."""
 
 
 class DataStore:
@@ -45,15 +49,16 @@ class DataStore:
 
     def load(self) -> DataSnapshot:
         """Load everything. Fails if the data repo can't be read; a missing slug map,
-        nicknames file or unreachable Site only warns."""
+        nicknames or aliases file or unreachable Site only warns."""
         slug_map = self._fetch_slug_map(fallback={})
         nicknames = self._fetch_nicknames(fallback={})
+        aliases = self._fetch_aliases(fallback={})
         meta = self._refresh_meta(MetaDescriptions(), startup=True)
-        self._snapshot = self._build_snapshot(self.data_repo.read_version(), slug_map, meta, nicknames)
+        self._snapshot = self._build_snapshot(self.data_repo.read_version(), slug_map, meta, nicknames, aliases)
         logger.info(
             f'Loaded data version {self._snapshot.version} '
             f'({sum(len(o) for o in self._snapshot.objects.values())} objects, {len(slug_map)} slugs, '
-            f'{len(nicknames)} nicknamed, '
+            f'{len(nicknames)} nicknamed, {len(aliases)} aliased, '
             f'meta descriptions from Site build {meta.build_id})'
         )
         return self._snapshot
@@ -64,21 +69,23 @@ class DataStore:
         version = self.data_repo.read_version()
         slug_map = self._fetch_slug_map(fallback=current.site_links.slug_map)
         nicknames = self._fetch_nicknames(fallback=current.nicknames)
+        aliases = self._fetch_aliases(fallback=current.aliases)
         meta = self._refresh_meta(current.meta_descriptions)
         if (
             version == current.version
             and slug_map == current.site_links.slug_map
             and nicknames == current.nicknames
+            and aliases == current.aliases
             and meta is current.meta_descriptions
         ):
             return False
         if version == current.version:
             # index/ / the Site changed after current/ was pushed; keep the parsed objects.
             self._snapshot = DataSnapshot(
-                version, current.objects, SiteLinks(self.site_url, slug_map), meta, nicknames
+                version, current.objects, SiteLinks(self.site_url, slug_map), meta, nicknames, aliases
             )
         else:
-            self._snapshot = self._build_snapshot(version, slug_map, meta, nicknames)
+            self._snapshot = self._build_snapshot(version, slug_map, meta, nicknames, aliases)
         logger.info(
             f'Refreshed data: version {current.version} -> {version}, {len(slug_map)} slugs, '
             f'meta descriptions from Site build {meta.build_id}'
@@ -86,10 +93,10 @@ class DataStore:
         return True
 
     def _build_snapshot(
-        self, version: str, slug_map: SlugMap, meta: MetaDescriptions, nicknames: Nicknames
+        self, version: str, slug_map: SlugMap, meta: MetaDescriptions, nicknames: Names, aliases: Names
     ) -> DataSnapshot:
         objects = {t.name: self.data_repo.read_objects(t.name) for t in OBJECT_TYPES}
-        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta, nicknames)
+        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta, nicknames, aliases)
 
     def _fetch_slug_map(self, fallback: SlugMap) -> SlugMap:
         try:
@@ -98,11 +105,18 @@ class DataStore:
             logger.warning(f'Could not read the slug map {self.data_repo.slug_map_file}: {e}; links may be missing')
             return fallback
 
-    def _fetch_nicknames(self, fallback: Nicknames) -> Nicknames:
+    def _fetch_nicknames(self, fallback: Names) -> Names:
+        return self._fetch_names(self.data_repo.read_nicknames, self.data_repo.nicknames_file, 'nicknames', fallback)
+
+    def _fetch_aliases(self, fallback: Names) -> Names:
+        return self._fetch_names(self.data_repo.read_aliases, self.data_repo.aliases_file, 'aliases', fallback)
+
+    @staticmethod
+    def _fetch_names(read: Callable[[], Names], path: Path, what: str, fallback: Names) -> Names:
         try:
-            return self.data_repo.read_nicknames()
+            return read()
         except (OSError, ValueError) as e:
-            logger.warning(f'Could not read the nicknames {self.data_repo.nicknames_file}: {e}; lookups use full names')
+            logger.warning(f'Could not read the {what} {path}: {e}; lookups use full names')
             return fallback
 
     def _refresh_meta(self, current: MetaDescriptions, startup: bool = False) -> MetaDescriptions:

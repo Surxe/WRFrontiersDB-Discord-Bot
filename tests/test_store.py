@@ -35,6 +35,13 @@ class TestDataStore:
         assert store.snapshot.objects is objects
         assert store.snapshot.nicknames == {'DA_Pilot_Common35.0': ['Marcus']}
 
+    def test_refresh_on_new_aliases_only(self, store, aliases_file):
+        objects = store.snapshot.objects
+        aliases_file.write_text(json.dumps({'DA_Module_ChassisAlpha.1': ['Alpha Legs']}))
+        assert store.refresh_if_changed() is True
+        assert store.snapshot.objects is objects
+        assert store.snapshot.aliases == {'DA_Module_ChassisAlpha.1': ['Alpha Legs']}
+
     def test_unreadable_nicknames_keep_previous(self, store, nicknames_file):
         nicknames = store.snapshot.nicknames
         nicknames_file.write_text('not json')
@@ -52,3 +59,4 @@ class TestDataStore:
         snapshot = store.load()
         assert snapshot.site_links.slug_map == {}
         assert snapshot.nicknames == {}
+        assert snapshot.aliases == {}

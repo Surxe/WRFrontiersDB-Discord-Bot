@@ -7,12 +7,10 @@ from rapidfuzz import fuzz, process
 
 from wrfdb_bot.wrf_data.object_types import (
     OBJECT_TYPES,
-    OBJECT_TYPES_BY_NAME,
     ObjectType,
     is_published,
     object_description,
     object_name,
-    ref_to_id,
 )
 from wrfdb_bot.wrf_data.store import DataSnapshot
 
@@ -29,9 +27,6 @@ SUGGESTION_MIN_SCORE = 70
 MAX_SUGGESTIONS = 3
 MAX_DESCRIPTION_LENGTH = 300
 
-_ROBOT_PARTS = ('Chassis', 'Torso', 'Shoulder')
-_SHOULDER_SIDES = {'L': 'Left', 'R': 'Right'}
-
 
 @dataclass
 class LookupEntry:
@@ -41,7 +36,8 @@ class LookupEntry:
     url: str | None
     description: str
     aliases: tuple[str, ...] = ()
-    """Other names that reach this entry (e.g. `Alpha Chassis` for a robot part)."""
+    """Full alternative names from Data's `index/aliases.json` (`Alpha Chassis` for a robot
+    part). They match like the name itself, and the first is shown in its place."""
     nicknames: tuple[str, ...] = ()
     """Short names from Data's `index/nicknames.json` (`Marcus` for Marcus Shedd). They
     reach the entry only when no object has that exact name, and are never fuzzy-matched."""
@@ -175,7 +171,6 @@ def _is_clear_fuzzy_match(scored: list[tuple[str, float]]) -> bool:
 
 
 def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
-    module_groups = snapshot.objects.get('ModuleGroup', {})
     entries: list[LookupEntry] = []
     for priority, object_type in enumerate(OBJECT_TYPES):
         for object_id, obj in snapshot.objects.get(object_type.name, {}).items():
@@ -191,27 +186,12 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
                     name=name,
                     url=snapshot.site_links.page_url(object_type, object_id),
                     description=_entry_description(snapshot, object_type, object_id, obj),
-                    aliases=_robot_part_aliases(object_type, obj, name, module_groups),
+                    aliases=tuple(snapshot.aliases.get(object_id, ())),
                     nicknames=tuple(snapshot.nicknames.get(object_id, ())),
                     priority=priority,
                 )
             )
     return entries
-
-
-def _robot_part_aliases(object_type: ObjectType, obj: dict, name: str, module_groups: dict) -> tuple[str, ...]:
-    """`Alpha Chassis`, `Alpha Shoulder Left`, ... for modules named after their robot."""
-    if object_type is not OBJECT_TYPES_BY_NAME['Module'] or not obj.get('virtual_bot_ref'):
-        return ()
-    group = module_groups.get(ref_to_id(obj.get('module_group_ref', '')), {})
-    group_name = group.get('name', {}).get('en', '')
-    part = next((p for p in _ROBOT_PARTS if group_name.endswith(p)), None)
-    if part is None:
-        return ()
-    side = _SHOULDER_SIDES.get(obj.get('shoulder_side', ''))
-    if side:
-        return (f'{name} {part} {side}', f'{name} {side} {part}')
-    return (f'{name} {part}',)
 
 
 def _entry_description(snapshot: DataSnapshot, object_type: ObjectType, object_id: str, obj: dict) -> str:
