@@ -19,7 +19,8 @@ in a message and it replies with an embed linking to that object's page on the
   name. A real object name always wins over a first name (`[[Fury]]` is the robot), and
   first names are matched exactly, never as typo corrections.
 - Robot parts: `[[Alpha]]` is the robot; `[[Alpha Chassis]]`, `[[Alpha Torso]]`,
-  `[[Alpha Shoulder Left]]` are its modules.
+  `[[Alpha Shoulder Left]]` are its modules, and a chassis is also its robot's legs
+  (`[[Alpha Legs]]`). A robot's reply also shows its torso ability at max level.
 - `/wrf query:` does the same lookup, with autocomplete.
 - Each embed's footer names the data version it was answered from (`Data 2026-09-29`).
 - `/about` (the `about` service) shows which data the bot, the Site and the Discount

@@ -13,6 +13,11 @@ class TestReplyKwargs:
         assert 'No match for' in kwargs['content']
         assert kwargs['allowed_mentions'].everyone is False
 
+    def test_robot_shows_its_torso_description(self, index):
+        embed = reply_kwargs([index.resolve('Alpha')])['embeds'][0]
+        assert (embed.fields[-1].name, embed.fields[-1].value) == ('Alpha Torso', 'Pulls a target in.')
+        assert all(f.name != 'Alpha Torso' for f in reply_kwargs([index.resolve('Kate Sinclair')])['embeds'][0].fields)
+
     def test_reply_marks_fuzzy_and_missing_page(self, index):
         fuzzy = reply_kwargs([index.resolve('Kate Sinclar')])['embeds'][0]
         assert 'closest match' in fuzzy.footer.text

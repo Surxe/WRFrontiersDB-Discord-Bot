@@ -11,6 +11,7 @@ from wrfdb_bot.wrf_data.object_types import (
     is_published,
     object_description,
     object_name,
+    ref_to_id,
 )
 from wrfdb_bot.wrf_data.store import DataSnapshot
 
@@ -43,6 +44,9 @@ class LookupEntry:
     reach the entry only when no object has that exact name, and are never fuzzy-matched."""
     hint: str = ''
     """Shortest query that resolves to exactly this entry; set by the index."""
+    torso: 'LookupEntry | None' = field(default=None, repr=False, compare=False)
+    """For a robot: its torso module's entry. Its description (the robot's ability, at max
+    level) is shown with the robot too."""
     priority: int = field(default=0, repr=False)
 
     @property
@@ -174,6 +178,7 @@ def _is_clear_fuzzy_match(scored: list[tuple[str, float]]) -> bool:
 
 def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
     entries: list[LookupEntry] = []
+    torsos_by_robot_id: dict[str, LookupEntry] = {}
     for priority, object_type in enumerate(OBJECT_TYPES):
         for object_id, obj in snapshot.objects.get(object_type.name, {}).items():
             if not is_published(object_type, obj):
@@ -181,19 +186,28 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
             name = object_name(object_type, obj)
             if not to_lookup_key(name):
                 continue
-            entries.append(
-                LookupEntry(
-                    object_type=object_type,
-                    object_id=object_id,
-                    name=name,
-                    url=snapshot.site_links.page_url(object_type, object_id),
-                    description=_entry_description(snapshot, object_type, object_id, obj),
-                    aliases=tuple(snapshot.aliases.get(object_id, ())),
-                    nicknames=tuple(snapshot.nicknames.get(object_id, ())),
-                    priority=priority,
-                )
+            entry = LookupEntry(
+                object_type=object_type,
+                object_id=object_id,
+                name=name,
+                url=snapshot.site_links.page_url(object_type, object_id),
+                description=_entry_description(snapshot, object_type, object_id, obj),
+                aliases=tuple(snapshot.aliases.get(object_id, ())),
+                nicknames=tuple(snapshot.nicknames.get(object_id, ())),
+                priority=priority,
             )
+            entries.append(entry)
+            if _is_robot_torso(obj):
+                torsos_by_robot_id[ref_to_id(obj['virtual_bot_ref'])] = entry
+    for entry in entries:
+        if entry.object_type.name == 'VirtualBot':
+            entry.torso = torsos_by_robot_id.get(entry.object_id)
     return entries
+
+
+def _is_robot_torso(obj: dict) -> bool:
+    """`DA_ModuleType_Torso` and the titans' `DA_ModuleType_Titan<Name>Torso`."""
+    return bool(obj.get('virtual_bot_ref')) and ref_to_id(obj.get('module_type_ref', '')).endswith('Torso.0')
 
 
 def _entry_description(snapshot: DataSnapshot, object_type: ObjectType, object_id: str, obj: dict) -> str:
