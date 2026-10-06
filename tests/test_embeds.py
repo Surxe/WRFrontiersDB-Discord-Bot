@@ -19,3 +19,9 @@ class TestReplyKwargs:
         unlinked = reply_kwargs([index.resolve('Unlinked')])['embeds'][0]
         assert unlinked.url is None
         assert 'no page on the site yet' in unlinked.footer.text
+
+    def test_footer_names_the_data_version(self, index):
+        assert index.version == '2026-01-01'
+        embed = reply_kwargs([index.resolve('Alpha')], index.version)['embeds'][0]
+        assert embed.footer.text.endswith(' - Data 2026-01-01')
+        assert reply_kwargs([index.resolve('Alpha')])['embeds'][0].footer.text == 'Robot'

@@ -7,6 +7,7 @@ from wrfdb_bot.services.lookup.index import LookupIndex
 from wrfdb_bot.wrf_data import meta_descriptions
 from wrfdb_bot.wrf_data.data_repo import DataRepo
 from wrfdb_bot.wrf_data.meta_descriptions import MetaDescriptions, MetaDescriptionsError
+from wrfdb_bot.wrf_data import store as store_module
 from wrfdb_bot.wrf_data.store import DataStore
 
 KATE = 'DA_Pilot_Rare_KateSinclair.0'
@@ -37,7 +38,13 @@ def deploy_state(tmp_path):
 
 
 def record_deploy(path, run_id: str) -> None:
-    path.write_text(json.dumps({'site_run_id': run_id, 'game_version': '2026-01-01'}))
+    path.write_text(json.dumps(deploy_doc(run_id)))
+
+
+def deploy_doc(run_id: str, data_commit: str = 'abcdef1234', data_version: str = '2026-01-01') -> dict:
+    """A deploy record, as the pipeline writes it to its Site deploy state."""
+    return {'run_id': run_id, 'data_commit': data_commit, 'data_version': data_version,
+            'built_at_utc': '2026-01-01T00:00:00Z', 'run_url': f'https://example.invalid/{run_id}'}
 
 
 def make_store(data_dir, deploy_state, site: FakeSite, monkeypatch) -> DataStore:
@@ -59,14 +66,6 @@ class TestMetaDescriptions:
         assert not meta('6').is_older_than('6')
         assert not meta('7').is_older_than('6')  # a newer manual deploy is fine
         assert meta(None).is_older_than('6')
-
-    def test_read_deployed_run_id(self, deploy_state):
-        assert meta_descriptions.read_deployed_run_id(deploy_state) is None
-        record_deploy(deploy_state, '42')
-        assert meta_descriptions.read_deployed_run_id(deploy_state) == '42'
-        deploy_state.write_text('{"site_run_id": null}')
-        with pytest.raises(MetaDescriptionsError):
-            meta_descriptions.read_deployed_run_id(deploy_state)
 
 
 class TestStoreMetaRefresh:
@@ -90,6 +89,8 @@ class TestStoreMetaRefresh:
         assert store.refresh_if_changed() is True
         assert site.calls == ['10', '11']
         assert store.snapshot.meta_descriptions.get('Pilot', KATE) == 'L1: New'
+        assert store.snapshot.site_deploy.run_id == '11'
+        assert store.snapshot.site_deploy.short_commit == 'abcdef1'
         assert store.snapshot.objects is objects
         assert store.refresh_if_changed() is False
         assert site.calls == ['10', '11']
@@ -102,9 +103,25 @@ class TestStoreMetaRefresh:
         site.served = meta('10', kate='stale')
         assert store.refresh_if_changed() is False
         assert store.snapshot.meta_descriptions.build_id == '10'
+        assert store.snapshot.site_deploy.run_id == '10'
         site.served = meta('11', kate='fresh')
         assert store.refresh_if_changed() is True
         assert store.snapshot.meta_descriptions.get('Pilot', KATE) == 'fresh'
+
+    def test_unreadable_deploy_state_keeps_previous(self, data_dir, slug_map_file, deploy_state, monkeypatch):
+        record_deploy(deploy_state, '10')
+        site = FakeSite(meta('10'))
+        store = make_store(data_dir, deploy_state, site, monkeypatch)
+        deploy_state.write_text('{"run_id": "11"}')  # no data_commit
+        assert store.refresh_if_changed() is False
+        assert store.snapshot.site_deploy.run_id == '10'
+
+    def test_site_on_other_data_version_warns(self, data_dir, slug_map_file, deploy_state, monkeypatch):
+        deploy_state.write_text(json.dumps(deploy_doc('10', data_version='2025-12-01')))
+        warnings = []
+        monkeypatch.setattr(store_module.logger, 'warning', warnings.append)
+        make_store(data_dir, deploy_state, FakeSite(meta('10')), monkeypatch)
+        assert any('2025-12-01' in w and '2026-01-01' in w for w in warnings)
 
     def test_unreachable_site_still_loads(self, data_dir, slug_map_file, deploy_state, monkeypatch):
         site = FakeSite(MetaDescriptionsError('down'))

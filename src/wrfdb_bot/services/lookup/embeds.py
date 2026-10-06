@@ -8,9 +8,9 @@ EMBED_COLOUR = discord.Colour(0x3B82F6)
 MAX_OTHER_MATCHES_SHOWN = 5
 
 
-def reply_kwargs(results: list[LookupResult]) -> dict:
+def reply_kwargs(results: list[LookupResult], data_version: str = '') -> dict:
     """Arguments for send/reply: one embed per answered query, a text line per miss."""
-    embeds = [result_embed(r) for r in results if r.entry is not None]
+    embeds = [result_embed(r, data_version) for r in results if r.entry is not None]
     misses = [no_match_line(r) for r in results if r.entry is None]
     return {
         'content': '\n'.join(misses) or None,
@@ -20,7 +20,7 @@ def reply_kwargs(results: list[LookupResult]) -> dict:
     }
 
 
-def result_embed(result: LookupResult) -> discord.Embed:
+def result_embed(result: LookupResult, data_version: str = '') -> discord.Embed:
     entry = result.entry
     assert entry is not None
     embed = discord.Embed(
@@ -41,6 +41,8 @@ def result_embed(result: LookupResult) -> discord.Embed:
         footer += f' - closest match for "{result.query}"'
     if entry.url is None:
         footer += ' - no page on the site yet'
+    if data_version:
+        footer += f' - Data {data_version}'
     embed.set_footer(text=footer)
     return embed
 

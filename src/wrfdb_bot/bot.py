@@ -13,6 +13,7 @@ from .wrf_data.store import DataStore
 # Service name (ENABLED_SERVICES) -> discord.py extension module with a `setup(bot)`.
 SERVICE_EXTENSIONS: dict[str, str] = {
     'lookup': 'wrfdb_bot.services.lookup.cog',
+    'about': 'wrfdb_bot.services.about.cog',
 }
 # Services that read message text and so need the privileged Message Content intent.
 MESSAGE_CONTENT_SERVICES = {'lookup'}
