@@ -74,6 +74,7 @@ class LookupIndex:
         self._abbreviations = {to_lookup_key(k): to_lookup_key(v) for k, v in (abbreviations or {}).items()}
         """Shorthand -> full words as lookup keys (`mk-2` -> `mk-ii`), from Data's `index/abbreviations.json`."""
         self._longest_abbreviation = max((len(k.split('-')) for k in self._abbreviations), default=0)
+        self._entries_by_id = {(e.object_type.name, e.object_id): e for e in entries}
         self._entries_by_key: dict[str, list[LookupEntry]] = defaultdict(list)
         self._entries_by_nickname_key: dict[str, list[LookupEntry]] = defaultdict(list)
         for entry in sorted(entries, key=lambda e: (e.priority, e.object_id)):
@@ -101,6 +102,10 @@ class LookupIndex:
     @classmethod
     def from_snapshot(cls, snapshot: DataSnapshot) -> 'LookupIndex':
         return cls(_build_entries(snapshot), snapshot.version, snapshot.names.abbreviations)
+
+    def entry(self, type_name: str, object_id: str) -> LookupEntry | None:
+        """The entry for a Data object, if it is (still) published."""
+        return self._entries_by_id.get((type_name, object_id))
 
     def resolve(self, query: str) -> LookupResult:
         object_type, name = self._split_known_prefix(query)

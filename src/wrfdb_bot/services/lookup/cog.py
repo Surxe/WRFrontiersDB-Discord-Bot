@@ -9,8 +9,9 @@ from discord.ext import commands
 from wrfdb_bot.wrf_data.store import DataSnapshot
 
 from .embeds import reply_kwargs
-from .index import LookupIndex
+from .index import LookupIndex, LookupResult
 from .query_parser import extract_queries
+from .views import LookupButton
 
 if TYPE_CHECKING:
     from wrfdb_bot.bot import WrfBot
@@ -53,6 +54,18 @@ class LookupCog(commands.Cog):
             ephemeral=result.entry is None, **reply_kwargs([result], index.version)
         )
 
+    async def answer_click(self, interaction: discord.Interaction, type_name: str, object_id: str) -> None:
+        """A lookup button was clicked: answer as if its object's hint had been typed."""
+        index = self.index
+        entry = index.entry(type_name, object_id)
+        if entry is None:
+            await interaction.response.send_message('That is no longer in the data.', ephemeral=True)
+            return
+        result = index.resolve(entry.hint)
+        if result.entry is not entry:
+            result = LookupResult(entry.hint, entry)
+        await interaction.response.send_message(**reply_kwargs([result], index.version))
+
     @wrf.autocomplete('query')
     async def wrf_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
         return [
@@ -65,4 +78,9 @@ class LookupCog(commands.Cog):
 
 
 async def setup(bot: 'WrfBot') -> None:
+    bot.add_dynamic_items(LookupButton)
     await bot.add_cog(LookupCog(bot))
+
+
+async def teardown(bot: 'WrfBot') -> None:
+    bot.remove_dynamic_items(LookupButton)

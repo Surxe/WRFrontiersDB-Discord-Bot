@@ -13,7 +13,8 @@ in a message and it replies with an embed linking to that object's page on the
   as "closest match"). Text inside `code` is ignored.
 - `[[type:name]]` picks a type when names are shared: `[[Vanguard]]` is the pilot,
   `[[talent:Vanguard]]` is the pilot talent. The bot lists other matches with the exact
-  thing to type for each.
+  thing to type for each, plus a button per other match (or "did you mean" suggestion)
+  that posts its answer when clicked.
 - Pilots also answer to their first name: `[[marcus]]` is Marcus Shedd. A first name
   shared by several pilots goes to the premium (hero) one; Marcus Davis needs his full
   name. A real object name always wins over a first name (`[[Fury]]` is the robot), and
@@ -121,6 +122,7 @@ src/wrfdb_bot/
       query_parser.py  [[...]] extraction, type prefixes
       index.py       LookupIndex: exact, priority, aliases, nicknames, fuzzy, hints
       embeds.py      Discord replies
+      views.py       Buttons for other matches / suggestions (clicked = looked up)
       cog.py         the Cog (Discord glue)
     about/           /about
       status.py      the bot's and the frontends' Data commits (Discord-free)
