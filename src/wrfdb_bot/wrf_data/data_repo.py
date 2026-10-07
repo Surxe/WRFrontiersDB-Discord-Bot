@@ -15,6 +15,7 @@ class DataRepo:
         self.nicknames_file = self.data_dir / 'index' / 'nicknames.json'
         self.aliases_file = self.data_dir / 'index' / 'aliases.json'
         self.abbreviations_file = self.data_dir / 'index' / 'abbreviations.json'
+        self.textures_dir = self.data_dir / 'textures'
 
     def read_version(self) -> str:
         return self.version_file.read_text(encoding='utf-8').strip()

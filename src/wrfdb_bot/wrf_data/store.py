@@ -13,6 +13,7 @@ from .deploys import DeployError, DeployRecord
 from .meta_descriptions import MetaDescriptions, MetaDescriptionsError
 from .object_types import OBJECT_TYPES
 from .site import SiteLinks, SlugMap
+from .textures import DEFAULT_DATA_RAW_URL, TextureLinks
 
 Names = dict[str, list[str]]
 """Object id -> other names, as Data's `index/nicknames.json` and `index/aliases.json` hold them."""
@@ -42,14 +43,23 @@ class DataSnapshot:
     names: LookupNames
     site_deploy: DeployRecord | None = None
     """The recorded Site deploy the meta descriptions came from (its Data commit), if known."""
+    textures: TextureLinks | None = None
+    """Icon links, pinned to the Data commit these objects were read at."""
 
 
 class DataStore:
     """Holds the current DataSnapshot. The load/refresh methods block (file and network IO)."""
 
-    def __init__(self, data_repo: DataRepo, site_url: str, site_deploy_state: Path | None = None):
+    def __init__(
+        self,
+        data_repo: DataRepo,
+        site_url: str,
+        site_deploy_state: Path | None = None,
+        data_raw_url: str = DEFAULT_DATA_RAW_URL,
+    ):
         self.data_repo = data_repo
         self.site_url = site_url
+        self.data_raw_url = data_raw_url
         self.site_deploy_state = site_deploy_state
         """The pipeline's Site deploy record; meta descriptions are re-fetched when it changes."""
         self._snapshot: DataSnapshot | None = None
@@ -84,17 +94,19 @@ class DataStore:
         slug_map = self._fetch_slug_map(fallback=current.site_links.slug_map)
         names = self._fetch_names(fallback=current.names)
         meta, deploy = self._refresh_site(current.meta_descriptions, current.site_deploy)
+        textures = self._texture_links()
         if (
             version == current.version
             and slug_map == current.site_links.slug_map
             and names == current.names
             and meta is current.meta_descriptions
+            and textures.commit == (current.textures.commit if current.textures else None)
         ):
             return False
         if version == current.version:
             # index/ / the Site changed after current/ was pushed; keep the parsed objects.
             self._snapshot = DataSnapshot(
-                version, current.objects, SiteLinks(self.site_url, slug_map), meta, names, deploy
+                version, current.objects, SiteLinks(self.site_url, slug_map), meta, names, deploy, textures
             )
         else:
             self._snapshot = self._build_snapshot(version, slug_map, meta, deploy, names)
@@ -114,7 +126,12 @@ class DataStore:
         names: LookupNames,
     ) -> DataSnapshot:
         objects = {t.name: self.data_repo.read_objects(t.name) for t in OBJECT_TYPES}
-        return DataSnapshot(version, objects, SiteLinks(self.site_url, slug_map), meta, names, deploy)
+        return DataSnapshot(
+            version, objects, SiteLinks(self.site_url, slug_map), meta, names, deploy, self._texture_links()
+        )
+
+    def _texture_links(self) -> TextureLinks:
+        return TextureLinks(self.data_raw_url, self.data_repo.read_commit(), self.data_repo.textures_dir)
 
     @staticmethod
     def _warn_if_site_differs(snapshot: DataSnapshot) -> None:

@@ -13,6 +13,7 @@ from wrfdb_bot.wrf_data.object_types import OBJECT_TYPES
 from wrfdb_bot.wrf_data.store import DataStore
 
 SITE_URL = 'https://wrf-db.example'
+SCOURGE_ICON_PATH = '/WRFrontiers/Content/Sparrow/UI/Textures/Modules/T_Module_Weapon_Scourge'
 
 
 def en(text: str) -> dict:
@@ -39,6 +40,7 @@ OBJECTS = {
         'DA_Module_Weapon_Scourge.0': {
             'production_status': 'Ready',
             'name': en('Scourge'),
+            'inventory_icon_path': SCOURGE_ICON_PATH,
             'description': en('Sustains a focused beam.'),
             'module_group_ref': 'OBJID_ModuleGroup::light-weapon',
         },
@@ -150,6 +152,9 @@ def write_data_dir(root: Path, version: str = '2026-01-01', objects: dict = OBJE
     (root / 'current' / 'version.txt').write_text(version + '\n')
     for object_type in OBJECT_TYPES:
         (objects_dir / f'{object_type.name}.json').write_text(json.dumps(objects.get(object_type.name, {})))
+    icon = root / 'textures' / (SCOURGE_ICON_PATH.lstrip('/') + '.png')
+    icon.parent.mkdir(parents=True, exist_ok=True)
+    icon.write_bytes(b'png')
     return root
 
 
