@@ -23,6 +23,9 @@ WRFrontiersDB-Data. See `README.md` for usage, options and layout.
   meta description: stats already filled in at max level, markup stripped (else the object's own
   text if it has no `{placeholders}`). To show an object's text anywhere, reuse its entry's
   `description`; never fill placeholders or pick levels in the bot.
+- **icon URL**: `LookupEntry.icon_url`, an object's `inventory_icon_path` as a file in the Data
+  repo (`wrf_data/textures.py`), pinned to the snapshot's Data commit. The bot never takes icons
+  from the Site.
 - **id** (Data object id), **type prefix** (`talent:`), **hint** (shortest unique query),
   **service** (a feature/Cog) - as defined in the README.
 

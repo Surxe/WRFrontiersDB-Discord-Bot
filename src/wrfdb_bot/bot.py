@@ -29,7 +29,10 @@ class WrfBot(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned, intents=intents, help_command=None)
         self.options = options
         self.data_store = DataStore(
-            DataRepo(options.data.data_dir), options.data.site_url, options.data.site_deploy_state
+            DataRepo(options.data.data_dir),
+            options.data.site_url,
+            options.data.site_deploy_state,
+            options.data.data_raw_url,
         )
         self._refresh_data_loop = tasks.loop(minutes=options.data.data_refresh_minutes)(self._refresh_data)
 

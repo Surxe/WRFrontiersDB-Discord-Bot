@@ -29,6 +29,8 @@ def main(queries: list[str]) -> None:
         fuzzy = ' (closest match)' if result.is_fuzzy else ''
         print(f'[[{query}]] -> {entry.object_type.label}: {entry.display_name} [{entry.object_id}]{fuzzy}')
         print(f'    url: {entry.url}')
+        if entry.icon_url:
+            print(f'    icon: {entry.icon_url}')
         if entry.description:
             print(f'    {entry.description}')
         for other in result.other_matches:

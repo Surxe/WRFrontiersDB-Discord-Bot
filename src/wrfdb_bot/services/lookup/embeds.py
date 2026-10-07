@@ -35,6 +35,8 @@ def result_embed(result: LookupResult, data_version: str = '') -> discord.Embed:
         description=entry.description or None,
         colour=EMBED_COLOUR,
     )
+    if entry.icon_url:
+        embed.set_thumbnail(url=entry.icon_url)
     if result.other_matches:
         lines = [f'{o.object_type.label}: `[[{o.hint}]]`' for o in result.other_matches[:MAX_OTHER_MATCHES_SHOWN]]
         hidden = len(result.other_matches) - MAX_OTHER_MATCHES_SHOWN

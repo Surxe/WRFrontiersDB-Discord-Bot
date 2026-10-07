@@ -66,6 +66,9 @@ These words have exactly one meaning in this repo:
   chassis), read from Data's `index/nicknames.json`. Matches only after exact names fail.
 - Aliases, nicknames and abbreviations are decided in Data, never by the bot, and never used
   in URLs.
+- **icon URL**: an object's icon (`inventory_icon_path`) as a file in the Data repo,
+  `DATA_RAW_URL/<commit>/textures<path>.png`, pinned to the commit of `DATA_DIR`. Shown as
+  the embed thumbnail; built only when that file exists in the clone.
 - **type prefix**: the `type:` part of a query.
 - **hint**: the shortest query that reaches one particular object; shown for other matches.
 - **service**: one bot feature (a discord.py Cog), switched on with `ENABLED_SERVICES`.
@@ -99,6 +102,9 @@ one fall back to their own description. That record also says which Data commit 
 was built from; the bot logs it and warns while the Site's data version differs from
 `DATA_DIR`'s.
 
+Embed thumbnails are object icons, linked straight from the Data repo at the commit
+`DATA_DIR` is on (`DATA_RAW_URL`), so they always match the data and need no Site deploy.
+
 ## Development
 
 - Tests: `.venv/bin/python -m pytest`
@@ -113,6 +119,7 @@ src/wrfdb_bot/
     data_repo.py     reads a WRFrontiersDB-Data clone
     object_types.py  the indexed types: Site routes, prefixes, names
     site.py          slug map -> page URLs
+    textures.py      texture paths -> icon URLs in the Data repo
     meta_descriptions.py  the Site's page meta descriptions (embed text)
     deploys.py       the frontends' deploy records: which Data commit they serve
     store.py         DataStore / DataSnapshot, refresh on change

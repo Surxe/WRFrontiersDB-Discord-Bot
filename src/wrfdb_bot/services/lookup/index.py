@@ -44,6 +44,8 @@ class LookupEntry:
     reach the entry only when no object has that exact name, and are never fuzzy-matched."""
     hint: str = ''
     """Shortest query that resolves to exactly this entry; set by the index."""
+    icon_url: str | None = None
+    """The object's icon (`inventory_icon_path`) in Data, pinned to the snapshot's Data commit."""
     torso: 'LookupEntry | None' = field(default=None, repr=False, compare=False)
     """For a robot: its torso module's entry. Its description (the robot's ability, at max
     level) is shown with the robot too."""
@@ -223,6 +225,7 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
                 description=_entry_description(snapshot, object_type, object_id, obj),
                 aliases=tuple(snapshot.names.aliases.get(object_id, ())),
                 nicknames=tuple(snapshot.names.nicknames.get(object_id, ())),
+                icon_url=snapshot.textures.url(obj.get('inventory_icon_path')) if snapshot.textures else None,
                 priority=priority,
             )
             entries.append(entry)
