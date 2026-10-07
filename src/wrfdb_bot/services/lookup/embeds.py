@@ -3,21 +3,27 @@
 import discord
 
 from .index import LookupResult
+from .views import lookup_view
 
 EMBED_COLOUR = discord.Colour(0x3B82F6)
 MAX_OTHER_MATCHES_SHOWN = 5
 
 
 def reply_kwargs(results: list[LookupResult], data_version: str = '') -> dict:
-    """Arguments for send/reply: one embed per answered query, a text line per miss."""
+    """Arguments for send/reply: one embed per answered query, a text line per miss, and a
+    button per other match or suggestion."""
     embeds = [result_embed(r, data_version) for r in results if r.entry is not None]
     misses = [no_match_line(r) for r in results if r.entry is None]
-    return {
+    kwargs = {
         'content': '\n'.join(misses) or None,
         'embeds': embeds,
         # Queries are echoed back; never let them ping anyone.
         'allowed_mentions': discord.AllowedMentions.none(),
     }
+    view = lookup_view(results)
+    if view is not None:
+        kwargs['view'] = view
+    return kwargs
 
 
 def result_embed(result: LookupResult, data_version: str = '') -> discord.Embed:
