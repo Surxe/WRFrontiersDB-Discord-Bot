@@ -27,6 +27,10 @@ in a message and it replies with an embed linking to that object's page on the
   Relic Bulgasari Shoulder Mk. I. The list is Data's `index/abbreviations.json`.
 - `/wrf query:` does the same lookup, with autocomplete.
 - Each embed's footer names the data version it was answered from (`Data 2026-09-29`).
+- A Site `/models` link with build codes (`https://wrf-db.info/models?a=<code>&b=<code>`,
+  the `builds` service) gets a reply listing each build's parts, linked to their pages. Discord
+  already previews the link with the viewer page's title, so the reply carries only the parts.
+  At most 5 links per message; links without `a=` are ignored.
 - `/about` (the `about` service) shows which data the bot, the Site and the Discount
   Visualizer are on: each frontend's Data commit from its `/deploy.json`, and whether it is
   the same as, behind or ahead of the bot's `DATA_DIR`.
@@ -71,6 +75,10 @@ These words have exactly one meaning in this repo:
   the embed thumbnail; built only when that file exists in the clone.
 - **type prefix**: the `type:` part of a query.
 - **hint**: the shortest query that reaches one particular object; shown for other matches.
+- **build code**: the short string for one robot build in the Site's `/models?a=<code>` links.
+  The format and the codec belong to Data (`index/build_codes.json`,
+  `tools/wrfdb_data/build_code.py`); the bot loads both from `DATA_DIR` and never encodes or
+  decodes on its own.
 - **service**: one bot feature (a discord.py Cog), switched on with `ENABLED_SERVICES`.
 
 ## Setup
@@ -90,8 +98,9 @@ These words have exactly one meaning in this repo:
 
 `DATA_DIR` is a local clone of WRFrontiersDB-Data. The bot checks it, including its slug
 map (`index/slug_map.json`), nicknames, aliases and abbreviations (`index/nicknames.json`,
-`aliases.json`, `abbreviations.json`), every
-`DATA_REFRESH_MINUTES` and reloads whatever changed.
+`aliases.json`, `abbreviations.json`) and build-code registry (`index/build_codes.json`, decoded
+with the clone's `tools/wrfdb_data/build_code.py`), every `DATA_REFRESH_MINUTES` and reloads
+whatever changed.
 Objects without a slug have no Site page and show up without a link. The pipeline pushes
 the slug map before it redeploys the Site, and its run report flags a deploy that fails.
 
@@ -106,6 +115,11 @@ was built from; the bot logs it and warns while the Site's data version differs 
 
 Embed thumbnails are object icons, linked straight from the Data repo at the commit
 `DATA_DIR` is on (`DATA_RAW_URL`), so they always match the data and need no Site deploy.
+
+Build codes and `/models` links rely on the Site being deployed with the bot's Data version or
+newer. A code made from parts the bot's `DATA_DIR` doesn't have yet gets a "newer than the
+bot's data" reply instead of a build. The Site reads codes the same way, so a Site deployed
+from older data than the code shows its default robot.
 
 ## Development
 
@@ -124,6 +138,7 @@ src/wrfdb_bot/
     textures.py      texture paths -> icon URLs in the Data repo
     meta_descriptions.py  the Site's page meta descriptions (embed text)
     deploys.py       the frontends' deploy records: which Data commit they serve
+    build_codes.py   Data's build-code codec + registry, loaded from DATA_DIR
     store.py         DataStore / DataSnapshot, refresh on change
   services/
     lookup/          [[name]] + /wrf
@@ -133,6 +148,10 @@ src/wrfdb_bot/
       embeds.py      Discord replies
       views.py       Buttons for other matches / suggestions (clicked = looked up)
       cog.py         the Cog (Discord glue)
+    builds/          /models build-code links
+      links.py       link parsing, decoding, part names (Discord-free)
+      embeds.py      Discord replies
+      cog.py         the Cog
     about/           /about
       status.py      the bot's and the frontends' Data commits (Discord-free)
       cog.py         the Cog

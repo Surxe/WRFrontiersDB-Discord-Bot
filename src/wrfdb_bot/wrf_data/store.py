@@ -8,6 +8,7 @@ from typing import TypeVar
 from loguru import logger
 
 from . import deploys, meta_descriptions
+from .build_codes import BuildCodes, BuildCodesError, load_codec_module
 from .data_repo import DataRepo
 from .deploys import DeployError, DeployRecord
 from .meta_descriptions import MetaDescriptions, MetaDescriptionsError
@@ -45,6 +46,8 @@ class DataSnapshot:
     """The recorded Site deploy the meta descriptions came from (its Data commit), if known."""
     textures: TextureLinks | None = None
     """Icon links, pinned to the Data commit these objects were read at."""
+    build_codes: BuildCodes | None = None
+    """Data's build-code codec over `index/build_codes.json`; None if the clone has none."""
 
 
 class DataStore:
@@ -75,8 +78,11 @@ class DataStore:
         names file or unreachable Site only warns."""
         slug_map = self._fetch_slug_map(fallback={})
         names = self._fetch_names(fallback=LookupNames())
+        build_codes = self._fetch_build_codes(current=None)
         meta, deploy = self._refresh_site(MetaDescriptions(), None, startup=True)
-        self._snapshot = self._build_snapshot(self.data_repo.read_version(), slug_map, meta, deploy, names)
+        self._snapshot = self._build_snapshot(
+            self.data_repo.read_version(), slug_map, meta, deploy, names, build_codes
+        )
         logger.info(
             f'Loaded data version {self._snapshot.version} '
             f'({sum(len(o) for o in self._snapshot.objects.values())} objects, {len(slug_map)} slugs, '
@@ -93,12 +99,14 @@ class DataStore:
         version = self.data_repo.read_version()
         slug_map = self._fetch_slug_map(fallback=current.site_links.slug_map)
         names = self._fetch_names(fallback=current.names)
+        build_codes = self._fetch_build_codes(current=current.build_codes)
         meta, deploy = self._refresh_site(current.meta_descriptions, current.site_deploy)
         textures = self._texture_links()
         if (
             version == current.version
             and slug_map == current.site_links.slug_map
             and names == current.names
+            and build_codes is current.build_codes
             and meta is current.meta_descriptions
             and textures.commit == (current.textures.commit if current.textures else None)
         ):
@@ -106,10 +114,11 @@ class DataStore:
         if version == current.version:
             # index/ / the Site changed after current/ was pushed; keep the parsed objects.
             self._snapshot = DataSnapshot(
-                version, current.objects, SiteLinks(self.site_url, slug_map), meta, names, deploy, textures
+                version, current.objects, SiteLinks(self.site_url, slug_map), meta, names, deploy, textures,
+                build_codes,
             )
         else:
-            self._snapshot = self._build_snapshot(version, slug_map, meta, deploy, names)
+            self._snapshot = self._build_snapshot(version, slug_map, meta, deploy, names, build_codes)
         logger.info(
             f'Refreshed data: version {current.version} -> {version}, {len(slug_map)} slugs, '
             f'meta descriptions from Site build {meta.build_id}{_site_data(deploy)}'
@@ -124,10 +133,12 @@ class DataStore:
         meta: MetaDescriptions,
         deploy: DeployRecord | None,
         names: LookupNames,
+        build_codes: BuildCodes | None,
     ) -> DataSnapshot:
         objects = {t.name: self.data_repo.read_objects(t.name) for t in OBJECT_TYPES}
         return DataSnapshot(
-            version, objects, SiteLinks(self.site_url, slug_map), meta, names, deploy, self._texture_links()
+            version, objects, SiteLinks(self.site_url, slug_map), meta, names, deploy, self._texture_links(),
+            build_codes,
         )
 
     def _texture_links(self) -> TextureLinks:
@@ -157,6 +168,20 @@ class DataStore:
             aliases=_read_or(repo.read_aliases, repo.aliases_file, fallback.aliases),
             abbreviations=_read_or(repo.read_abbreviations, repo.abbreviations_file, fallback.abbreviations),
         )
+
+    def _fetch_build_codes(self, current: BuildCodes | None) -> BuildCodes | None:
+        """Data's codec over the clone's registry; `current` itself while the registry is unchanged."""
+        try:
+            registry = self.data_repo.read_build_codes()
+            if current is not None and registry == current.registry:
+                return current
+            return BuildCodes(load_codec_module(self.data_repo.data_dir), registry)
+        except (OSError, ValueError, BuildCodesError) as e:
+            logger.warning(
+                f'Could not load build codes from {self.data_repo.build_codes_file}: {e}; '
+                '/models links are not read'
+            )
+            return current
 
     def _refresh_site(
         self, current: MetaDescriptions, current_deploy: DeployRecord | None, startup: bool = False

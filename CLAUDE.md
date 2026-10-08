@@ -30,6 +30,10 @@ WRFrontiersDB-Data. See `README.md` for usage, options and layout.
 - **icon URL**: `LookupEntry.icon_url`, an object's `inventory_icon_path` as a file in the Data
   repo (`wrf_data/textures.py`), pinned to the snapshot's Data commit. The bot never takes icons
   from the Site.
+- **build code**: the short string for a robot build in the Site's `/models?a=<code>` links. Data
+  owns the format and the codec (`index/build_codes.json`, `tools/wrfdb_data/build_code.py`);
+  `wrf_data/build_codes.py` loads both from `DATA_DIR`. Decode only through that codec; never
+  re-implement the format in the bot.
 - **id** (Data object id), **type prefix** (`talent:`), **hint** (shortest unique query),
   **service** (a feature/Cog) - as defined in the README.
 
