@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from wrfdb_bot.services.lookup.embeds import reply_kwargs
 from wrfdb_bot.services.lookup.views import LookupButton
 
@@ -18,6 +20,14 @@ class TestReplyKwargs:
         embed = reply_kwargs([index.resolve('Alpha')])['embeds'][0]
         assert (embed.fields[-1].name, embed.fields[-1].value) == ('Alpha Torso', 'Pulls a target in.')
         assert all(f.name != 'Alpha Torso' for f in reply_kwargs([index.resolve('Kate Sinclair')])['embeds'][0].fields)
+
+    def test_stats_are_inline_fields(self, index):
+        result = index.resolve('Scourge')
+        stats = (('Weight used', '11'), ('Armor', '63,800'))
+        result = replace(result, entry=replace(result.entry, stat_fields=stats))
+        embed = reply_kwargs([result])['embeds'][0]
+        assert [(f.name, f.value, f.inline) for f in embed.fields[:2]] == [
+            ('Weight used', '11', True), ('Armor', '63,800', True)]
 
     def test_reply_marks_fuzzy_and_missing_page(self, index):
         fuzzy = reply_kwargs([index.resolve('Kate Sinclar')])['embeds'][0]

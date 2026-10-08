@@ -2,7 +2,9 @@
 
 The Site writes each object page's meta description (per language) and bakes the
 same text into that JSON when it builds. The bot uses the English one as an embed's
-description, so embeds read like the page's link preview.
+description, so embeds read like the page's link preview. For armor modules the Site
+also publishes the description split into its lead text and its stats
+(`stat_summaries`), so the stats can be shown as embed fields.
 
 When to fetch is driven by the pipeline: after each successful Site deploy it writes
 the deploy's record (`deploys.py`) to a state file, including its CI run's id. The
@@ -20,6 +22,22 @@ Descriptions = dict[str, dict[str, dict[str, str]]]
 """Object type name -> object id -> language -> description."""
 
 
+StatField = tuple[str, str]
+"""A stat as (name, value), e.g. ('Max Speed', '109km/h')."""
+
+
+@dataclass(frozen=True)
+class StatSummary:
+    lead: str
+    """The description without its stats (a torso's ability text); '' for none."""
+    rows: tuple[tuple[StatField, ...], ...]
+    """The stats, grouped the way the Site lays them out."""
+
+    @property
+    def fields(self) -> tuple[StatField, ...]:
+        return tuple(f for row in self.rows for f in row)
+
+
 class MetaDescriptionsError(RuntimeError):
     pass
 
@@ -31,6 +49,18 @@ class MetaDescriptions:
     version: str | None = None
     """The game version of the data the Site was built from."""
     descriptions: Descriptions = field(default_factory=dict)
+    stat_summaries: dict = field(default_factory=dict)
+    """Module id -> language -> {lead, rows: [[{name, value}]]}, as the Site publishes it."""
+
+    def stat_summary(self, object_id: str, lang: str = 'en') -> StatSummary | None:
+        raw = self.stat_summaries.get(object_id, {}).get(lang)
+        if not raw:
+            return None
+        rows = tuple(
+            tuple((f['name'], f['value']) for f in row if f.get('name') and f.get('value'))
+            for row in raw.get('rows', [])
+        )
+        return StatSummary(raw.get('lead', ''), tuple(row for row in rows if row))
 
     def get(self, object_type_name: str, object_id: str, lang: str = 'en') -> str:
         return self.descriptions.get(object_type_name, {}).get(object_id, {}).get(lang, '')
@@ -57,4 +87,5 @@ def fetch(site_url: str, run_id: str | None) -> MetaDescriptions:
         build_id=str(build_id) if build_id is not None else None,
         version=doc.get('version'),
         descriptions=doc['descriptions'],
+        stat_summaries=doc.get('stat_summaries') or {},
     )
