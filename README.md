@@ -98,7 +98,9 @@ the slug map before it redeploys the Site, and its run report flags a deploy tha
 Embed descriptions are the Site's English page meta descriptions, fetched from
 `SITE_URL/meta_descriptions.json` at startup and again whenever `SITE_DEPLOY_STATE` (the
 pipeline's record of its last Site deploy) names a newer deploy (`run_id`). Objects without
-one fall back to their own description. That record also says which Data commit the Site
+one fall back to their own description. Armor modules (chassis, torsos, shoulders) show
+their stats as inline embed fields instead of description lines, from the same JSON's
+`stat_summaries`. That record also says which Data commit the Site
 was built from; the bot logs it and warns while the Site's data version differs from
 `DATA_DIR`'s.
 

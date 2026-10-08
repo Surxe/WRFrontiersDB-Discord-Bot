@@ -13,6 +13,7 @@ from wrfdb_bot.wrf_data.object_types import (
     object_name,
     ref_to_id,
 )
+from wrfdb_bot.wrf_data.meta_descriptions import StatSummary
 from wrfdb_bot.wrf_data.store import DataSnapshot
 
 from .lookup_key import to_lookup_key
@@ -46,6 +47,9 @@ class LookupEntry:
     """Shortest query that resolves to exactly this entry; set by the index."""
     icon_url: str | None = None
     """The object's icon (`inventory_icon_path`) in Data, pinned to the snapshot's Data commit."""
+    stat_fields: tuple[tuple[str, str], ...] = ()
+    """An armor module's stats as (name, value), from the Site; `description` then holds
+    only the rest of its meta description (a torso's ability text)."""
     torso: 'LookupEntry | None' = field(default=None, repr=False, compare=False)
     """For a robot: its torso module's entry. Its description (the robot's ability, at max
     level) is shown with the robot too."""
@@ -217,12 +221,14 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
             name = object_name(object_type, obj)
             if not to_lookup_key(name):
                 continue
+            summary = snapshot.meta_descriptions.stat_summary(object_id) if object_type.name == 'Module' else None
             entry = LookupEntry(
                 object_type=object_type,
                 object_id=object_id,
                 name=name,
                 url=snapshot.site_links.page_url(object_type, object_id),
-                description=_entry_description(snapshot, object_type, object_id, obj),
+                description=_entry_description(snapshot, object_type, object_id, obj, summary),
+                stat_fields=summary.fields if summary else (),
                 aliases=tuple(snapshot.names.aliases.get(object_id, ())),
                 nicknames=tuple(snapshot.names.nicknames.get(object_id, ())),
                 icon_url=snapshot.textures.url(obj.get('inventory_icon_path')) if snapshot.textures else None,
@@ -242,8 +248,13 @@ def _is_robot_torso(obj: dict) -> bool:
     return bool(obj.get('virtual_bot_ref')) and ref_to_id(obj.get('module_type_ref', '')).endswith('Torso.0')
 
 
-def _entry_description(snapshot: DataSnapshot, object_type: ObjectType, object_id: str, obj: dict) -> str:
-    """The page's English meta description, else the object's own description."""
+def _entry_description(
+    snapshot: DataSnapshot, object_type: ObjectType, object_id: str, obj: dict, summary: StatSummary | None
+) -> str:
+    """The page's English meta description (without the stats when they are shown as
+    fields), else the object's own description."""
+    if summary and summary.rows:
+        return _clean_description(summary.lead)
     text = snapshot.meta_descriptions.get(object_type.name, object_id) or object_description(object_type, obj)
     return _clean_description(text)
 

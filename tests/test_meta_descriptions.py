@@ -54,10 +54,37 @@ def make_store(data_dir, deploy_state, site: FakeSite, monkeypatch) -> DataStore
     return store
 
 
+ALPHA_TORSO = 'DA_Module_TorsoAlpha.0'
+
+
+def meta_with_stats(build_id: str = '1') -> MetaDescriptions:
+    summary = {
+        'lead': 'Pulls a target in.',
+        'rows': [
+            [{'name': 'Weight used', 'value': '11'}, {'name': 'Armor', 'value': '63,800'}],
+            [{'name': 'Shield', 'value': '29,000'}],
+        ],
+    }
+    return MetaDescriptions(
+        build_id,
+        '2026-01-01',
+        {'Module': {ALPHA_TORSO: {'en': 'Pulls a target in.\nWeight used: 11\nArmor: 63,800\nShield: 29,000'}}},
+        {ALPHA_TORSO: {'en': summary}},
+    )
+
+
 class TestMetaDescriptions:
     def test_get_falls_back_to_empty(self):
         assert meta('1').get('Pilot', KATE) == 'L1: Vanguard\nL2: Tactician'
         assert meta('1').get('Pilot', KATE, 'de') == 'Deutsch'
+
+    def test_stat_summary_rows_and_flat_fields(self):
+        summary = meta_with_stats().stat_summary(ALPHA_TORSO)
+        assert summary.lead == 'Pulls a target in.'
+        assert summary.rows == ((('Weight used', '11'), ('Armor', '63,800')), (('Shield', '29,000'),))
+        assert summary.fields == (('Weight used', '11'), ('Armor', '63,800'), ('Shield', '29,000'))
+        assert meta_with_stats().stat_summary(KATE) is None
+        assert meta('1').stat_summary(ALPHA_TORSO) is None
         assert meta('1').get('Pilot', 'missing') == ''
         assert meta('1').get('Module', KATE) == ''
 
@@ -142,3 +169,9 @@ class TestEmbedDescriptions:
         assert index.resolve('Kate Sinclair').entry.description == 'L1: Vanguard\nL2: Tactician'
         # No meta description: the object's own description, as before.
         assert index.resolve('Scourge').entry.description == 'Sustains a focused beam.'
+
+    def test_stats_become_fields_and_leave_the_description(self, data_dir, slug_map_file, deploy_state, monkeypatch):
+        store = make_store(data_dir, deploy_state, FakeSite(meta_with_stats()), monkeypatch)
+        entry = LookupIndex.from_snapshot(store.snapshot).resolve('Alpha').entry.torso
+        assert entry.description == 'Pulls a target in.'
+        assert entry.stat_fields == (('Weight used', '11'), ('Armor', '63,800'), ('Shield', '29,000'))

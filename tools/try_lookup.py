@@ -33,6 +33,8 @@ def main(queries: list[str]) -> None:
             print(f'    icon: {entry.icon_url}')
         if entry.description:
             print(f'    {entry.description}')
+        for name, value in entry.stat_fields:
+            print(f'    field: {name} = {value}')
         for other in result.other_matches:
             print(f'    also: {other.object_type.label}: {other.display_name} -> [[{other.hint}]]')
 

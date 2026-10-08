@@ -37,6 +37,9 @@ def result_embed(result: LookupResult, data_version: str = '') -> discord.Embed:
     )
     if entry.icon_url:
         embed.set_thumbnail(url=entry.icon_url)
+    # Inline: Discord lays them out up to three per row, one per row when narrow.
+    for name, value in entry.stat_fields:
+        embed.add_field(name=name, value=value, inline=True)
     if result.other_matches:
         lines = [f'{o.object_type.label}: `[[{o.hint}]]`' for o in result.other_matches[:MAX_OTHER_MATCHES_SHOWN]]
         hidden = len(result.other_matches) - MAX_OTHER_MATCHES_SHOWN
