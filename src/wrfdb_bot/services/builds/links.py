@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from urllib.parse import parse_qs, urlsplit
 
 from wrfdb_bot.wrf_data.build_codes import Build, BuildCodes
-from wrfdb_bot.wrf_data.object_types import OBJECT_TYPES_BY_NAME, object_name
+from wrfdb_bot.wrf_data.object_types import OBJECT_TYPES_BY_NAME, display_name, object_name
 from wrfdb_bot.wrf_data.store import DataSnapshot
 
 MAX_LINKS_PER_MESSAGE = 5
@@ -77,11 +77,11 @@ def read_link(snapshot: DataSnapshot, codes: BuildCodes, a: str, b: str | None) 
 
 
 def parts(snapshot: DataSnapshot, build: Build) -> tuple[Part, ...]:
-    """The build's parts in slot order, named like lookups name them (first alias, else name)."""
+    """The build's parts in slot order, named like lookups name them."""
     modules = snapshot.objects.get(MODULE.name, {})
     result = []
     for key, module_id in build.items():
-        aliases = snapshot.names.aliases.get(module_id) or []
-        name = aliases[0] if aliases else object_name(MODULE, modules.get(module_id, {})) or module_id
+        name = object_name(MODULE, modules.get(module_id, {})) or module_id
+        name = display_name(name, snapshot.names.aliases.get(module_id, ()))
         result.append(Part(SLOT_LABELS.get(key, key), name, snapshot.site_links.page_url(MODULE, module_id)))
     return tuple(result)

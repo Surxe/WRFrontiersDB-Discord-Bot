@@ -1,5 +1,6 @@
 """The WRFrontiersDB-Data object types the bot knows, and how to read each one."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from .localization import default_string
@@ -51,6 +52,12 @@ def object_name(object_type: ObjectType, obj: dict) -> str:
         last_name = default_string(obj.get('last_name') or obj.get('second_name'))
         return f'{first_name} {last_name}'.strip()
     return default_string(obj.get('name'))
+
+
+def display_name(name: str, aliases: Sequence[str]) -> str:
+    """Name to show for an object: its first alias (Data's `index/aliases.json`) when it has
+    one, since the plain name isn't distinctive there (robot parts), else `name`."""
+    return aliases[0] if aliases else name
 
 
 def object_description(object_type: ObjectType, obj: dict) -> str:
