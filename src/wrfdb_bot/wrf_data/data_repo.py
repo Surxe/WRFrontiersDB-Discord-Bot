@@ -15,6 +15,7 @@ class DataRepo:
         self.nicknames_file = self.data_dir / 'index' / 'nicknames.json'
         self.aliases_file = self.data_dir / 'index' / 'aliases.json'
         self.abbreviations_file = self.data_dir / 'index' / 'abbreviations.json'
+        self.build_codes_file = self.data_dir / 'index' / 'build_codes.json'
         self.textures_dir = self.data_dir / 'textures'
 
     def read_version(self) -> str:
@@ -44,6 +45,11 @@ class DataRepo:
     def read_abbreviations(self) -> dict[str, str]:
         """Short word -> full word(s) (`r` -> `relic`, `mk2` -> `mk ii`); for matching only."""
         with self.abbreviations_file.open(encoding='utf-8') as f:
+            return json.load(f)
+
+    def read_build_codes(self) -> dict:
+        """The build-code registry (`index/build_codes.json`); decode with wrf_data.build_codes."""
+        with self.build_codes_file.open(encoding='utf-8') as f:
             return json.load(f)
 
     def read_commit(self) -> str | None:

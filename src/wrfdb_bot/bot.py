@@ -14,9 +14,10 @@ from .wrf_data.store import DataStore
 SERVICE_EXTENSIONS: dict[str, str] = {
     'lookup': 'wrfdb_bot.services.lookup.cog',
     'about': 'wrfdb_bot.services.about.cog',
+    'builds': 'wrfdb_bot.services.builds.cog',
 }
 # Services that read message text and so need the privileged Message Content intent.
-MESSAGE_CONTENT_SERVICES = {'lookup'}
+MESSAGE_CONTENT_SERVICES = {'lookup', 'builds'}
 
 
 class WrfBot(commands.Bot):

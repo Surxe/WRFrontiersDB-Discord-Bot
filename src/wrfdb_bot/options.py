@@ -8,7 +8,7 @@ from .wrf_data.textures import DEFAULT_DATA_RAW_URL
 
 DEFAULT_SITE_URL = 'https://wrf-db.info'
 DEFAULT_VISUALIZER_URL = 'https://surxe.github.io/WRFrontiers-Discount-Visualizer'
-DEFAULT_ENABLED_SERVICES = ('lookup',)
+DEFAULT_ENABLED_SERVICES = ('lookup', 'builds')
 DEFAULT_DATA_REFRESH_MINUTES = 10.0
 DEFAULT_LOG_LEVEL = 'INFO'
 

@@ -8,6 +8,7 @@ from rapidfuzz import fuzz, process
 from wrfdb_bot.wrf_data.object_types import (
     OBJECT_TYPES,
     ObjectType,
+    display_name,
     is_published,
     object_description,
     object_name,
@@ -58,7 +59,7 @@ class LookupEntry:
     @property
     def display_name(self) -> str:
         """Name to show: the first alias when the plain name isn't distinctive (robot parts)."""
-        return self.aliases[0] if self.aliases else self.name
+        return display_name(self.name, self.aliases)
 
 
 @dataclass(frozen=True)
