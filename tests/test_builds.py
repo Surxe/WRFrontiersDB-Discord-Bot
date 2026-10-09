@@ -14,7 +14,7 @@ import pytest
 from conftest import SITE_URL
 
 from wrfdb_bot.services.builds.embeds import build_embed, reply_kwargs
-from wrfdb_bot.services.builds.links import find_codes, read_link
+from wrfdb_bot.services.builds.links import find_codes, models_url, parse_build_arg, read_link
 from wrfdb_bot.wrf_data.build_codes import CODEC_REL, BuildCodes, load_codec_module
 from wrfdb_bot.wrf_data.data_repo import DataRepo
 from wrfdb_bot.wrf_data.store import DataStore
@@ -83,6 +83,21 @@ class TestFindCodes:
         assert find_codes(text, SITE_URL) == []
 
 
+class TestBuildArg:
+    def test_one_code_two_codes_or_a_link(self):
+        assert parse_build_arg(' 00020 ', SITE_URL) == ('00020', None)
+        assert parse_build_arg('00020  00000', SITE_URL) == ('00020', '00000')
+        assert parse_build_arg(f'{SITE_URL}/models?a=00020&b=00000', SITE_URL) == ('00020', '00000')
+
+    def test_anything_else_is_none(self):
+        assert parse_build_arg('', SITE_URL) is None
+        assert parse_build_arg('a b c', SITE_URL) is None
+
+    def test_models_url(self):
+        assert models_url(SITE_URL + '/', '00020') == f'{SITE_URL}/models?a=00020'
+        assert models_url(SITE_URL, 'x-_', '0') == f'{SITE_URL}/models?a=x-_&b=0'
+
+
 @needs_data
 class TestReadLink:
     def test_parts_named_and_linked(self, build_store):
@@ -116,6 +131,12 @@ class TestEmbeds:
         assert '**Build B**' in embed.description
         assert f'Left weapon 1: [Railgun]({SITE_URL}/modules/light-weapon-railgun/)' in embed.description
         assert embed.footer.text == 'Data 2026-01-01'
+
+    def test_viewer_url_titles_the_embed(self, build_store):
+        snapshot = build_store.snapshot
+        url = models_url(SITE_URL, WITH_RAILGUN)
+        embed = reply_kwargs([read_link(snapshot, snapshot.build_codes, WITH_RAILGUN, None)], '', url)['embeds'][0]
+        assert embed.title == 'Open in the model viewer' and embed.url == url
 
     def test_single_build_and_problems(self, build_store):
         snapshot = build_store.snapshot

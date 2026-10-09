@@ -1,7 +1,7 @@
 # WRFrontiersDB-Discord-Bot - agent context
 
-A Discord bot answering `[[name]]` / `/wrf` with links to wrf-db.info, from
-WRFrontiersDB-Data. See `README.md` for usage, options and layout.
+A Discord bot answering `[[name]]` / `/wrf` (and build codes: `/models` links, `/wrf-build`) with
+links to wrf-db.info, from WRFrontiersDB-Data. See `README.md` for usage, options and layout.
 
 ## Terminology - never mix these
 

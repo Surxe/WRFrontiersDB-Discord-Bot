@@ -1,8 +1,9 @@
-"""Reading the Site's `/models?a=<code>&b=<code>` links. Free of Discord, so it stays testable."""
+"""Reading the Site's `/models?a=<code>&b=<code>` links and `/wrf-build` input. Free of Discord,
+so it stays testable."""
 
 import re
 from dataclasses import dataclass
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from wrfdb_bot.wrf_data.build_codes import Build, BuildCodes
 from wrfdb_bot.wrf_data.object_types import OBJECT_TYPES_BY_NAME, display_name, object_name
@@ -63,6 +64,24 @@ def find_codes(content: str, site_url: str) -> list[tuple[str, str | None]]:
         if len(found) == MAX_LINKS_PER_MESSAGE:
             break
     return found
+
+
+def parse_build_arg(text: str, site_url: str) -> tuple[str, str | None] | None:
+    """`/wrf-build`'s one argument: `A`, `A B` (codes never contain spaces) or a `/models` link.
+    None if it is none of these."""
+    found = find_codes(text, site_url)
+    if found:
+        return found[0]
+    words = text.split()
+    if len(words) in (1, 2):
+        return words[0], (words[1] if len(words) == 2 else None)
+    return None
+
+
+def models_url(site_url: str, a: str, b: str | None = None) -> str:
+    """The Site's model viewer showing build A (compared with B)."""
+    params = {'a': a} if b is None else {'a': a, 'b': b}
+    return f'{site_url.rstrip("/")}/models?{urlencode(params)}'
 
 
 def read_link(snapshot: DataSnapshot, codes: BuildCodes, a: str, b: str | None) -> BuildLink:

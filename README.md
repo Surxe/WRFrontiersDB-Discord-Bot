@@ -31,6 +31,10 @@ in a message and it replies with an embed linking to that object's page on the
   the `builds` service) gets a reply listing each build's parts, linked to their pages. Discord
   already previews the link with the viewer page's title, so the reply carries only the parts.
   At most 5 links per message; links without `a=` are ignored.
+- `/wrf-build build:` shows the same for codes typed in directly: one code, two codes to compare
+  (`OQ2HQJC75 GYcA04MI0A`, A then B), or a `/models` link. Its reply has no link preview, so it
+  links to the model viewer itself. Any site that makes codes with Data's codec can hand out
+  that one string for Discord.
 - `/about` (the `about` service) shows which data the bot, the Site and the Discount
   Visualizer are on: each frontend's Data commit from its `/deploy.json`, and whether it is
   the same as, behind or ahead of the bot's `DATA_DIR`.
@@ -148,8 +152,8 @@ src/wrfdb_bot/
       embeds.py      Discord replies
       views.py       Buttons for other matches / suggestions (clicked = looked up)
       cog.py         the Cog (Discord glue)
-    builds/          /models build-code links
-      links.py       link parsing, decoding, part names (Discord-free)
+    builds/          /models build-code links + /wrf-build
+      links.py       link + /wrf-build input parsing, decoding, part names (Discord-free)
       embeds.py      Discord replies
       cog.py         the Cog
     about/           /about
