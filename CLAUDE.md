@@ -23,9 +23,10 @@ links to wrf-db.info, from WRFrontiersDB-Data. See `README.md` for usage, option
   meta description: stats already filled in at max level, markup stripped (else the object's own
   text if it has no `{placeholders}`). To show an object's text anywhere, reuse its entry's
   `description`; never fill placeholders or pick levels in the bot.
-- **stat fields**: an armor module's stats, `LookupEntry.stat_fields`, from the Site's
-  `stat_summaries` (in `meta_descriptions.json`): (name, value) pairs shown as inline embed
-  fields. The entry's `description` is then the summary's `lead` (the text without the stats).
+- **stat fields**: an armor or gear module's stats (gear: weight and energy cost),
+  `LookupEntry.stat_fields`, from the Site's `stat_summaries` (in
+  `meta_descriptions.json`): (name, value) pairs shown as inline embed fields. The entry's
+  `description` is then the summary's `lead` (the text without the stats).
   The Site decides which stats and their order; the bot only lays them out.
 - **icon URL**: `LookupEntry.icon_url`, an object's `inventory_icon_path` as a file in the Data
   repo (`wrf_data/textures.py`), pinned to the snapshot's Data commit. The bot never takes icons

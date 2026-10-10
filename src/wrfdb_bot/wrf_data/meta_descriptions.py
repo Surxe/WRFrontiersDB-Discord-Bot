@@ -2,9 +2,9 @@
 
 The Site writes each object page's meta description (per language) and bakes the
 same text into that JSON when it builds. The bot uses the English one as an embed's
-description, so embeds read like the page's link preview. For armor modules the Site
-also publishes the description split into its lead text and its stats
-(`stat_summaries`), so the stats can be shown as embed fields.
+description, so embeds read like the page's link preview. For armor modules and
+supply / cycle gear the Site also publishes the description split into its lead text
+and its stats (`stat_summaries`), so the stats can be shown as embed fields.
 
 When to fetch is driven by the pipeline: after each successful Site deploy it writes
 the deploy's record (`deploys.py`) to a state file, including its CI run's id. The
@@ -29,7 +29,7 @@ StatField = tuple[str, str]
 @dataclass(frozen=True)
 class StatSummary:
     lead: str
-    """The description without its stats (a torso's ability text); '' for none."""
+    """The description without its stats (a torso's or gear's ability text); '' for none."""
     rows: tuple[tuple[StatField, ...], ...]
     """The stats, grouped the way the Site lays them out."""
 

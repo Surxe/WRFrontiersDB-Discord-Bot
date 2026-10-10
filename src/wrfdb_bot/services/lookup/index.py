@@ -49,8 +49,8 @@ class LookupEntry:
     icon_url: str | None = None
     """The object's icon (`inventory_icon_path`) in Data, pinned to the snapshot's Data commit."""
     stat_fields: tuple[tuple[str, str], ...] = ()
-    """An armor module's stats as (name, value), from the Site; `description` then holds
-    only the rest of its meta description (a torso's ability text)."""
+    """An armor or gear module's stats as (name, value), from the Site; `description` then
+    holds only the rest of its meta description (a torso's or gear's ability text)."""
     torso: 'LookupEntry | None' = field(default=None, repr=False, compare=False)
     """For a robot: its torso module's entry. Its description (the robot's ability, at max
     level) is shown with the robot too."""
