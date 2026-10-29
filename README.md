@@ -117,6 +117,10 @@ their stats as inline embed fields instead of description lines, from the same J
 was built from; the bot logs it and warns while the Site's data version differs from
 `DATA_DIR`'s.
 
+`HEARTBEAT_FILE`, when set, is touched every minute while the bot is connected to
+Discord. Its age is how long the bot has been unreachable; the home server's availability
+log reads it.
+
 Embed thumbnails are object icons, linked straight from the Data repo at the commit
 `DATA_DIR` is on (`DATA_RAW_URL`), so they always match the data and need no Site deploy.
 
@@ -134,6 +138,7 @@ from older data than the code shows its default robot.
 src/wrfdb_bot/
   __main__.py        entry point (python -m wrfdb_bot)
   options.py         options from env / .env
+  heartbeat.py       touches HEARTBEAT_FILE while connected to Discord
   bot.py             WrfBot: owns the DataStore, loads enabled services, syncs commands
   wrf_data/          shared WRF data access, used by every service
     data_repo.py     reads a WRFrontiersDB-Data clone
