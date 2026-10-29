@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands, tasks
 from loguru import logger
 
+from .heartbeat import touch_heartbeat
 from .options import Options
 from .wrf_data.data_repo import DataRepo
 from .wrf_data.store import DataStore
@@ -36,6 +37,9 @@ class WrfBot(commands.Bot):
             options.data.data_raw_url,
         )
         self._refresh_data_loop = tasks.loop(minutes=options.data.data_refresh_minutes)(self._refresh_data)
+        # Gateway state for the heartbeat: set on connect/resume, cleared on disconnect.
+        self._gateway_connected = False
+        self._heartbeat_loop = tasks.loop(minutes=1)(self._heartbeat)
 
     async def setup_hook(self) -> None:
         await asyncio.to_thread(self.data_store.load)
@@ -44,9 +48,20 @@ class WrfBot(commands.Bot):
             logger.info(f'Loaded service {service}')
         await self._sync_commands()
         self._refresh_data_loop.start()
+        if self.options.heartbeat_file:
+            self._heartbeat_loop.start()
 
     async def on_ready(self) -> None:
         logger.info(f'Logged in as {self.user} in {len(self.guilds)} server(s)')
+
+    async def on_connect(self) -> None:
+        self._gateway_connected = True
+
+    async def on_resumed(self) -> None:
+        self._gateway_connected = True
+
+    async def on_disconnect(self) -> None:
+        self._gateway_connected = False
 
     async def _sync_commands(self) -> None:
         if not self.options.guild_ids:
@@ -58,6 +73,12 @@ class WrfBot(commands.Bot):
             self.tree.copy_global_to(guild=guild)
             synced = await self.tree.sync(guild=guild)
             logger.info(f'Synced {len(synced)} command(s) to guild {guild_id}')
+
+    async def _heartbeat(self) -> None:
+        # Touched only while connected, so the file's age is how long the bot has been
+        # unreachable (read by home-server's availability log).
+        if self._gateway_connected:
+            touch_heartbeat(self.options.heartbeat_file)
 
     async def _refresh_data(self) -> None:
         try:

@@ -30,6 +30,7 @@ class Options:
     enabled_services: tuple[str, ...]
     data: DataOptions
     log_level: str
+    heartbeat_file: Path | None
 
 
 def load_data_options() -> DataOptions:
@@ -53,11 +54,17 @@ def load_options() -> Options:
         enabled_services=_list('ENABLED_SERVICES') or DEFAULT_ENABLED_SERVICES,
         data=load_data_options(),
         log_level=_optional('LOG_LEVEL', DEFAULT_LOG_LEVEL).upper(),
+        heartbeat_file=_optional_path('HEARTBEAT_FILE'),
     )
 
 
 def _optional(name: str, default: str) -> str:
     return os.environ.get(name, '').strip() or default
+
+
+def _optional_path(name: str) -> Path | None:
+    value = os.environ.get(name, '').strip()
+    return Path(value) if value else None
 
 
 def _required(name: str) -> str:
