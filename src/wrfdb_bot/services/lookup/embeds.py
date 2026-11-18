@@ -50,6 +50,8 @@ def result_embed(result: LookupResult, data_version: str = '') -> discord.Embed:
         embed.add_field(name=entry.torso.display_name, value=entry.torso.description, inline=False)
 
     footer = entry.object_type.label
+    if entry.stats_level:
+        footer += f' - stats at Lv. {entry.stats_level}'
     if result.is_fuzzy:
         footer += f' - closest match for "{result.query}"'
     if entry.url is None:

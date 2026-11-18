@@ -69,6 +69,7 @@ OBJECTS = {
             'production_status': 'Ready',
             'name': en('Alpha'),
             'description': en('Pulls a target in.'),
+            'module_scalars': {'levels': {'variables': [{}] * 13}},
             'module_group_ref': 'OBJID_ModuleGroup::titan-torsos',
             'module_type_ref': 'OBJID_ModuleType::DA_ModuleType_TitanAlphaTorso.0',
             'virtual_bot_ref': 'OBJID_VirtualBot::alpha',

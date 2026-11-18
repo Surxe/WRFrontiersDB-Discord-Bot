@@ -175,3 +175,15 @@ class TestEmbedDescriptions:
         entry = LookupIndex.from_snapshot(store.snapshot).resolve('Alpha').entry.torso
         assert entry.description == 'Pulls a target in.'
         assert entry.stat_fields == (('Weight used', '11'), ('Armor', '63,800'), ('Shield', '29,000'))
+
+    def test_stats_level_is_the_top_level_only_with_site_filled_stats(
+        self, data_dir, slug_map_file, deploy_state, monkeypatch
+    ):
+        store = make_store(data_dir, deploy_state, FakeSite(meta_with_stats()), monkeypatch)
+        index = LookupIndex.from_snapshot(store.snapshot)
+        robot = index.resolve('Alpha').entry
+        assert robot.torso.stats_level == 13
+        assert robot.stats_level == 13
+        # Plain text with no stats (a weapon's), or no level-scaled object: no level.
+        assert index.resolve('Scourge').entry.stats_level is None
+        assert index.resolve('Kate Sinclair').entry.stats_level is None

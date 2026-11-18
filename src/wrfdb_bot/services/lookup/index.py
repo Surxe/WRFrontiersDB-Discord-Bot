@@ -51,6 +51,9 @@ class LookupEntry:
     stat_fields: tuple[tuple[str, str], ...] = ()
     """An armor or gear module's stats as (name, value), from the Site; `description` then
     holds only the rest of its meta description (a torso's or gear's ability text)."""
+    stats_level: int | None = None
+    """The level its stats are shown at (a module's top level, as the Site shows them), or
+    None when the embed shows no level-scaled stats. Read from the module's level count."""
     torso: 'LookupEntry | None' = field(default=None, repr=False, compare=False)
     """For a robot: its torso module's entry. Its description (the robot's ability, at max
     level) is shown with the robot too."""
@@ -223,13 +226,16 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
             if not to_lookup_key(name):
                 continue
             summary = snapshot.meta_descriptions.stat_summary(object_id) if object_type.name == 'Module' else None
+            description = _entry_description(snapshot, object_type, object_id, obj, summary)
+            stat_fields = summary.fields if summary else ()
             entry = LookupEntry(
                 object_type=object_type,
                 object_id=object_id,
                 name=name,
                 url=snapshot.site_links.page_url(object_type, object_id),
-                description=_entry_description(snapshot, object_type, object_id, obj, summary),
-                stat_fields=summary.fields if summary else (),
+                description=description,
+                stat_fields=stat_fields,
+                stats_level=_stats_level(object_type, obj, description, stat_fields),
                 aliases=tuple(snapshot.names.aliases.get(object_id, ())),
                 nicknames=tuple(snapshot.names.nicknames.get(object_id, ())),
                 icon_url=snapshot.textures.url(obj.get('inventory_icon_path')) if snapshot.textures else None,
@@ -241,7 +247,21 @@ def _build_entries(snapshot: DataSnapshot) -> list[LookupEntry]:
     for entry in entries:
         if entry.object_type.name == 'VirtualBot':
             entry.torso = torsos_by_robot_id.get(entry.object_id)
+            if entry.torso and entry.torso.description:
+                entry.stats_level = entry.torso.stats_level
     return entries
+
+
+def _stats_level(object_type: ObjectType, obj: dict, description: str, stat_fields: tuple) -> int | None:
+    """The level a module's shown stats are at: its top level (its level count), which the
+    Site fills them in at. None unless it shows stat fields or a description the Site
+    filled in (its own text has `{placeholders}`)."""
+    if object_type.name != 'Module':
+        return None
+    if not stat_fields and not (description and '{' in object_description(object_type, obj)):
+        return None
+    levels = ((obj.get('module_scalars') or {}).get('levels') or {}).get('variables') or []
+    return len(levels) or None
 
 
 def _is_robot_torso(obj: dict) -> bool:
