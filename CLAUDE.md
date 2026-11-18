@@ -28,6 +28,10 @@ links to wrf-db.info, from WRFrontiersDB-Data. See `README.md` for usage, option
   `meta_descriptions.json`): (name, value) pairs shown as inline embed fields. The entry's
   `description` is then the summary's `lead` (the text without the stats).
   The Site decides which stats and their order; the bot only lays them out.
+- **stats level**: `LookupEntry.stats_level`, shown in the embed footer (`stats at Lv. 13`). It is
+  the module's level count (the top level, which the Site fills stats in at), set only when the
+  embed shows stat fields or a Site-filled description; a robot takes its torso's. It labels the
+  Site's choice of level and never picks one.
 - **icon URL**: `LookupEntry.icon_url`, an object's `inventory_icon_path` as a file in the Data
   repo (`wrf_data/textures.py`), pinned to the snapshot's Data commit. The bot never takes icons
   from the Site.

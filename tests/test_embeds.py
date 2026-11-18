@@ -42,6 +42,11 @@ class TestReplyKwargs:
         assert embed.footer.text.endswith(' - Data 2026-01-01')
         assert reply_kwargs([index.resolve('Alpha')])['embeds'][0].footer.text == 'Robot'
 
+    def test_footer_names_the_stats_level(self, index):
+        result = index.resolve('Alpha Torso')
+        result = replace(result, entry=replace(result.entry, stats_level=13))
+        assert reply_kwargs([result])['embeds'][0].footer.text == 'Module - stats at Lv. 13'
+
 
 class TestLookupButtons:
     def test_a_button_per_other_match_carrying_its_object(self, index):
